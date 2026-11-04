@@ -46,8 +46,8 @@ test('the chart is drawn in its one set of colours, the grid and watermark among
 
 test('the watermark is drawn under the grid and the bars, never as an annotation over them', async () => {
   const layout = await drawnLayout();
-  assert.ok(!layout.annotations.some((a) => /RenshuTan/.test(a.text)), 'no watermark annotation (annotations are drawn over the bars)');
-  const marks = layout.shapes.filter((s) => s.label && /RenshuTan/.test(s.label.text));
+  assert.ok(!layout.annotations.some((a) => /Renshu/.test(a.text)), 'no watermark annotation (annotations are drawn over the bars)');
+  const marks = layout.shapes.filter((s) => s.label && /Renshu/.test(s.label.text));
   assert.equal(marks.length, 1);
   const [wm] = marks;
   assert.equal(wm.layer, 'below', 'under the gridlines and the traces');
@@ -82,8 +82,8 @@ test('gridlines are anti-aliased only where a CSS pixel is not a whole number of
 test('the video draws the grid, the watermark and every other colour of the chart exactly as the site does', () => {
   assert.equal(constant(page, 'GRID_COLOR'), GRID);
   assert.equal(constant(page, 'WATERMARK_COLOR'), WATERMARK);
-  assert.doesNotMatch(page, /Renshu(BTC|Tan)<\/span>|rgba\(255,255,255,0\.08\)/, 'no old watermark annotation or grid colour');
-  assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuTan<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
+  assert.doesNotMatch(page, /Renshu\w*<\/span>|rgba\(255,255,255,0\.08\)/, 'no old watermark annotation or grid colour');
+  assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuTanz<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
   assert.equal((page.match(/gridcolor: TH\.grid/g) || []).length, 2);
   // page.html's colours are the site's (index.html CHART_COLORS), colour for colour, the ▲ figure's backing (tagBg) too.
   const c = vm.createContext({ window: { devicePixelRatio: 2 }, document: {}, Math, Date, String, Number, JSON });
@@ -93,12 +93,15 @@ test('the video draws the grid, the watermark and every other colour of the char
   assert.deepEqual(Object.keys(video).sort(), Object.keys(COLORS).sort());
 });
 
-test('the chart, the videos and the contact lines credit @RenshuTan on X, never the old @RenshuBTC', () => {
+test('the chart, the videos and the contact lines credit @RenshuTanz on X, never the old @RenshuBTC or @RenshuTan', () => {
   const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-  // The YouTube channel keeps its own name (youtube.com/@renshuBTC); only the X account was renamed.
-  for (const f of ['index.html', 'privacy.html', 'terms.html', 'SECURITY.md', 'README.md', 'tools/video/page.html', 'tools/video/youtube.mjs'])
-    assert.doesNotMatch(read(f), /x\.com\/RenshuBTC|<b>@RenshuBTC<\/b>/i, f);
-  for (const f of ['privacy.html', 'terms.html']) assert.match(read(f), /<a href="https:\/\/x\.com\/RenshuTan">@RenshuTan<\/a> on X/, f);
-  assert.match(read('SECURITY.md'), /\[@RenshuTan\]\(https:\/\/x\.com\/RenshuTan\) on X/);
-  for (const src of [html, page]) assert.equal((src.match(/<b>@RenshuTan<\/b>/g) || []).length, 1);
+  // The YouTube channel keeps its own name (youtube.com/@renshuBTC); only the X account was renamed, from RenshuBTC to
+  // RenshuTan and then to RenshuTanz. A link to a name given up can lead to whoever takes it next.
+  for (const f of ['index.html', 'privacy.html', 'terms.html', 'SECURITY.md', 'README.md', 'tools/video/page.html', 'tools/video/youtube.mjs']) {
+    assert.doesNotMatch(read(f), /x\.com\/Renshu(BTC|Tan)\b|<b>@RenshuBTC<\/b>/i, f);
+    assert.doesNotMatch(read(f), /@RenshuTan\b/i, f);
+  }
+  for (const f of ['privacy.html', 'terms.html']) assert.match(read(f), /<a href="https:\/\/x\.com\/RenshuTanz">@RenshuTanz<\/a> on X/, f);
+  assert.match(read('SECURITY.md'), /\[@RenshuTanz\]\(https:\/\/x\.com\/RenshuTanz\) on X/);
+  for (const src of [html, page]) assert.equal((src.match(/<b>@RenshuTanz<\/b>/g) || []).length, 1);
 });

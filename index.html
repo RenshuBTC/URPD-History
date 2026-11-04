@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-WLFwMJY95lA4PS1dbj3kTbL8OoFeviTHgaNPZw0hESk=' 'sha256-aed8VLqfItw2091i0UsvFNmbxnFnJF+lElE1bAQAKSk=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-QVJ5dnSkDqunGQQme4VoPQaKC5mV3i8AMZt6XycSdwk=' 'sha256-aed8VLqfItw2091i0UsvFNmbxnFnJF+lElE1bAQAKSk=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -1848,7 +1848,7 @@ function drawChart(data, plotSeq, navigationSeq) {
   // it used to be, is always drawn over the bars: at 15 % white it lightened every bar it crossed, and while you
   // scrubbed, the letters flickered across the moving bars.
   var shapes = [{type:"rect",xref:"paper",yref:"paper",x0:0,x1:1,y0:0,y1:1,layer:"below",line:{width:0},fillcolor:"rgba(0,0,0,0)",
-    label:{text:"<b>@RenshuTan</b>",textposition:"middle center",font:{family:FONT,size:50,color:TH.watermark}}}];
+    label:{text:"<b>@RenshuTanz</b>",textposition:"middle center",font:{family:FONT,size:50,color:TH.watermark}}}];
   var annotations = [
     {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:creditWrap?-76:-62,text:creditShown,showarrow:false,font:{size:creditSize,color:TH.credit,family:FONT},xanchor:"left",align:"left"}
   ];
