@@ -1,0 +1,2730 @@
+{
+ "about": "Labelled examples for tests/evals.test.cjs: real traces of the chart, drawn by evals/collect.mjs on 2026-11-04 and found good by review, with BRK's reference values for their days and the site's data files as they were. The failures the checks must catch are made from these in the test.",
+ "inProgress": "2026-11-04",
+ "refs": {
+  "2011-01-31": {
+   "price_close": 0.51,
+   "circulating_supply": 5278400,
+   "realized_cap": 706264.73,
+   "supply_in_profit_share": 100,
+   "sth_supply": 2393007.0999985,
+   "lth_supply": 2885392.9000015
+  },
+  "2011-06-08": {
+   "price_close": 27.25,
+   "circulating_supply": 6473149.98999999,
+   "realized_cap": 24548802.27,
+   "supply_in_profit_share": 100,
+   "sth_supply": 3331507.65855057,
+   "lth_supply": 3141642.33144942
+  },
+  "2017-02-10": {
+   "price_close": 997.6,
+   "circulating_supply": 16155886.09873996,
+   "realized_cap": 7563294277.53,
+   "supply_in_profit_share": 94.4732,
+   "sth_supply": 4404509.03070241,
+   "lth_supply": 11751377.06803755
+  },
+  "2026-11-04": {
+   "price_close": 77016.64,
+   "circulating_supply": 20107472.99015749,
+   "realized_cap": 1085196934461.38,
+   "supply_in_profit_share": 61.078697,
+   "sth_supply": 3788076.71651348,
+   "lth_supply": 16319396.27364401
+  },
+  "2012-04-12": {
+   "price_close": 4.93,
+   "circulating_supply": 8771140.32815376,
+   "realized_cap": 42442778.56,
+   "supply_in_profit_share": 66.3452,
+   "sth_supply": 3385854.75281371,
+   "lth_supply": 5385285.57534005
+  },
+  "2012-11-28": {
+   "price_close": 12.22,
+   "circulating_supply": 10501314.94351183,
+   "realized_cap": 73748775.17,
+   "supply_in_profit_share": 87.2403,
+   "sth_supply": 4177445.81176794,
+   "lth_supply": 6323869.13174389
+  },
+  "2009-01-03": {
+   "price_close": 0,
+   "circulating_supply": 0,
+   "realized_cap": 0,
+   "supply_in_profit_share": null,
+   "sth_supply": 0,
+   "lth_supply": 0
+  },
+  "2009-01-09": {
+   "price_close": 0,
+   "circulating_supply": 700,
+   "realized_cap": 0,
+   "supply_in_profit_share": 100,
+   "sth_supply": 700,
+   "lth_supply": 0
+  },
+  "2017-08-04": {
+   "price_close": 2848.54,
+   "circulating_supply": 16488548.59356963,
+   "realized_cap": 18595612458.46,
+   "supply_in_profit_share": 97.465096,
+   "sth_supply": 6234489.28612098,
+   "lth_supply": 10254059.30744865
+  },
+  "2010-05-18": {
+   "price_close": 0,
+   "circulating_supply": 2817750,
+   "realized_cap": 0,
+   "supply_in_profit_share": 100,
+   "sth_supply": 1384751.13,
+   "lth_supply": 1432998.87
+  },
+  "2015-03-13": {
+   "price_close": 287.83,
+   "circulating_supply": 13937589.77152479,
+   "realized_cap": 4177458534.35,
+   "supply_in_profit_share": 53.066803,
+   "sth_supply": 3966263.05496059,
+   "lth_supply": 9971326.7165642
+  }
+ },
+ "good": [
+  {
+   "id": "t011",
+   "date": "2011-01-31",
+   "shown": "2011-01-31",
+   "why": "first day the USD video shows",
+   "view": "usd-lthsth",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2011-01-31",
+    "spot": 0.51,
+    "profitPctCoin": 100,
+    "profitPct": 100,
+    "coin": false,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 100
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 5278400,
+     "value": 706264.730554,
+     "maxPrice": 0.51,
+     "bands": 23,
+     "sth": 2393007.099999,
+     "lth": 2885392.900002
+    },
+    "title": "Bitcoin URPD (% USD, LTH/STH) as of 31 Jan 2011",
+    "counter": "754/6510",
+    "dayNumber": 754,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1.0016
+    ],
+    "yRange": [
+     0,
+     5.314045
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 99.203388,
+      "positive": 290,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 0.796612,
+      "positive": 28,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       67.5,
+       980.5,
+       789.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Price: $0.51 | USD Value Last Moved In Profit: 100.0% | USD Value Last Moved In Loss: 0.0%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0.51,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       839.5,
+       99.5,
+       1147.5,
+       161.5
+      ]
+     }
+    ],
+    "legend": [
+     557.5,
+     70,
+     1081.5,
+     99
+    ],
+    "titleBox": [
+     537.5,
+     38,
+     1101.5,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t014",
+   "date": "2011-01-31",
+   "shown": "2011-01-31",
+   "why": "first day the USD video shows",
+   "view": "btc-age",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2011-01-31",
+    "spot": 0.51,
+    "profitPctCoin": 100,
+    "profitPct": 100,
+    "coin": true,
+    "split": false,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 5278400,
+     "value": 706264.730554,
+     "maxPrice": 0.51,
+     "bands": 23,
+     "sth": 2393007.099999,
+     "lth": 2885392.900002
+    },
+    "title": "Bitcoin URPD (% BTC, AGE) as of 31 Jan 2011",
+    "counter": "754/6510",
+    "dayNumber": 754,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1.0016
+    ],
+    "yRange": [
+     0,
+     1.615988
+    ],
+    "bars": [
+     {
+      "name": "<1h",
+      "sum": 0.132268,
+      "positive": 16,
+      "visible": true
+     },
+     {
+      "name": "1h-1d",
+      "sum": 1.436524,
+      "positive": 44,
+      "visible": true
+     },
+     {
+      "name": "1d-1w",
+      "sum": 10.798095,
+      "positive": 46,
+      "visible": true
+     },
+     {
+      "name": "1w-1m",
+      "sum": 8.826905,
+      "positive": 108,
+      "visible": true
+     },
+     {
+      "name": "1m-2m",
+      "sum": 6.982304,
+      "positive": 81,
+      "visible": true
+     },
+     {
+      "name": "2m-3m",
+      "sum": 7.040376,
+      "positive": 103,
+      "visible": true
+     },
+     {
+      "name": "3m-4m",
+      "sum": 5.683341,
+      "positive": 91,
+      "visible": true
+     },
+     {
+      "name": "4m-5m",
+      "sum": 4.43603,
+      "positive": 11,
+      "visible": true
+     },
+     {
+      "name": "5m-6m",
+      "sum": 3.262411,
+      "positive": 29,
+      "visible": true
+     },
+     {
+      "name": "6m-9m",
+      "sum": 12.469267,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "9m-1y",
+      "sum": 10.409319,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "1y-18m",
+      "sum": 10.311856,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "18m-2y",
+      "sum": 15.879347,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "2y-3y",
+      "sum": 2.331957,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "3y-4y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "4y-5y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "5y-6y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "6y-7y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "7y-8y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "8y-10y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "10y-12y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "12y-15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": ">15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       74.5,
+       980.5,
+       796.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Price: $0.51 | BTC Supply Last Moved In Profit: 100.0% | BTC Supply Last Moved In Loss: 0.0%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0.51,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       843.5,
+       118.5,
+       1158.5,
+       180.5
+      ]
+     },
+     {
+      "text": "▲ 53.0%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       74.5,
+       120.5,
+       126.5,
+       139.5
+      ]
+     }
+    ],
+    "legend": [
+     104,
+     70,
+     1542,
+     118
+    ],
+    "titleBox": [
+     565,
+     38,
+     1081,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t096",
+   "date": "2011-06-08",
+   "shown": "2011-06-08",
+   "why": "cycle 1 top",
+   "view": "usd-lthsth",
+   "window": "desktop",
+   "lang": "zh",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2011-06-08",
+    "spot": 27.25,
+    "profitPctCoin": 100,
+    "profitPct": 100,
+    "coin": false,
+    "split": true,
+    "lang": "zh",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 100
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 6473149.99,
+     "value": 24548802.266497,
+     "maxPrice": 27.25,
+     "bands": 23,
+     "sth": 3331507.658551,
+     "lth": 3141642.331449
+    },
+    "title": "比特币 URPD（% USD，长/短期）截至 2011年6月08日",
+    "counter": "882/6510",
+    "dayNumber": 882,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     27.320944
+    ],
+    "yRange": [
+     0,
+     7.031833
+    ],
+    "bars": [
+     {
+      "name": "短期持有者 (STH)",
+      "sum": 99.440672,
+      "positive": 346,
+      "visible": true
+     },
+     {
+      "name": "长期持有者 (LTH)",
+      "sum": 0.559328,
+      "positive": 11,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "周期 1 顶部",
+      "xref": "x2",
+      "yref": "y3",
+      "x": "2011-06-09",
+      "y": 29.58,
+      "width": null,
+      "color": false,
+      "box": [
+       1127.5,
+       99.5,
+       1196.5,
+       118.5
+      ]
+     },
+     {
+      "text": "由 Bitview.space 和 Bitcoin Core 提供支持。鸣谢：Antoine Le Calvez、Renato Shirakashi、James Check、@_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       67.5,
+       980.5,
+       754.5,
+       997.5
+      ]
+     },
+     {
+      "text": "价格: $27 | 最后移动的美元价值处于盈利: 100.0% | 最后移动的美元价值处于亏损: 0.0%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 27.25,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       1318.5,
+       99.5,
+       1561.5,
+       161.5
+      ]
+     }
+    ],
+    "legend": [
+     623.5,
+     70,
+     1015.5,
+     99
+    ],
+    "titleBox": [
+     565.5,
+     38,
+     1073.5,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t099",
+   "date": "2017-02-10",
+   "shown": "2017-02-10",
+   "why": "random",
+   "view": "btc-age",
+   "window": "desktop",
+   "lang": "ja",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2017-02-10",
+    "spot": 997.6,
+    "profitPctCoin": 94.492617,
+    "profitPct": 87.727105,
+    "coin": true,
+    "split": false,
+    "lang": "ja",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 16155886.09874,
+     "value": 7563350639.588112,
+     "maxPrice": 1161,
+     "bands": 23,
+     "sth": 4404509.030702,
+     "lth": 11751377.068038
+    },
+    "title": "ビットコイン URPD（% BTC、年齢） 基準日 2017年2月10日",
+    "counter": "2956/6510",
+    "dayNumber": 2956,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1162.8576
+    ],
+    "yRange": [
+     0,
+     1.2164
+    ],
+    "bars": [
+     {
+      "name": "<1h",
+      "sum": 0.136632,
+      "positive": 16,
+      "visible": true
+     },
+     {
+      "name": "1h-1d",
+      "sum": 2.004664,
+      "positive": 29,
+      "visible": true
+     },
+     {
+      "name": "1d-1w",
+      "sum": 3.617119,
+      "positive": 72,
+      "visible": true
+     },
+     {
+      "name": "1w-1m",
+      "sum": 6.196565,
+      "positive": 150,
+      "visible": true
+     },
+     {
+      "name": "1m-2m",
+      "sum": 6.432678,
+      "positive": 203,
+      "visible": true
+     },
+     {
+      "name": "2m-3m",
+      "sum": 4.013049,
+      "positive": 58,
+      "visible": true
+     },
+     {
+      "name": "3m-4m",
+      "sum": 3.101045,
+      "positive": 74,
+      "visible": true
+     },
+     {
+      "name": "4m-5m",
+      "sum": 1.760812,
+      "positive": 33,
+      "visible": true
+     },
+     {
+      "name": "5m-6m",
+      "sum": 2.045231,
+      "positive": 43,
+      "visible": true
+     },
+     {
+      "name": "6m-9m",
+      "sum": 6.810093,
+      "positive": 190,
+      "visible": true
+     },
+     {
+      "name": "9m-1y",
+      "sum": 5.80491,
+      "positive": 56,
+      "visible": true
+     },
+     {
+      "name": "1y-18m",
+      "sum": 5.66339,
+      "positive": 150,
+      "visible": true
+     },
+     {
+      "name": "18m-2y",
+      "sum": 5.35309,
+      "positive": 59,
+      "visible": true
+     },
+     {
+      "name": "2y-3y",
+      "sum": 11.77064,
+      "positive": 290,
+      "visible": true
+     },
+     {
+      "name": "3y-4y",
+      "sum": 14.237935,
+      "positive": 616,
+      "visible": true
+     },
+     {
+      "name": "4y-5y",
+      "sum": 3.822564,
+      "positive": 15,
+      "visible": true
+     },
+     {
+      "name": "5y-6y",
+      "sum": 4.644921,
+      "positive": 18,
+      "visible": true
+     },
+     {
+      "name": "6y-7y",
+      "sum": 5.182846,
+      "positive": 3,
+      "visible": true
+     },
+     {
+      "name": "7y-8y",
+      "sum": 6.360602,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "8y-10y",
+      "sum": 1.041212,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "10y-12y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "12y-15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": ">15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Bitview.space と Bitcoin Core を利用。クレジット：Antoine Le Calvez、Renato Shirakashi、James Check、@_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       74.5,
+       980.5,
+       766.5,
+       997.5
+      ]
+     },
+     {
+      "text": "価格: $998 | 含み益の最終移動 BTC 供給量: 94.5% | 含み損の最終移動 BTC 供給量: 5.5%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 997.6,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       1104.5,
+       118.5,
+       1352.5,
+       180.5
+      ]
+     },
+     {
+      "text": "▲ 13.5%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       74.5,
+       120.5,
+       126.5,
+       139.5
+      ]
+     }
+    ],
+    "legend": [
+     104,
+     70,
+     1542,
+     118
+    ],
+    "titleBox": [
+     539,
+     38,
+     1107,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t090",
+   "date": "latest",
+   "shown": "2026-11-04",
+   "why": "the day in progress",
+   "view": "btc-lthsth",
+   "window": "phone",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2026-11-04",
+    "spot": 77016.64,
+    "profitPctCoin": 61.050069,
+    "profitPct": 33.111401,
+    "coin": true,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 20107472.990157,
+     "value": 1085203815863.2407,
+     "maxPrice": 125700,
+     "bands": 23,
+     "sth": 3788076.716513,
+     "lth": 16319396.273644
+    },
+    "title": "Bitcoin URPD (% BTC, LTH/STH) as of 04 Nov 2026",
+    "counter": "6510/6510",
+    "dayNumber": 6510,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     125901.12
+    ],
+    "yRange": [
+     0,
+     1.466807
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 18.839149,
+      "positive": 154,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 81.160851,
+      "positive": 626,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       13.7,
+       507.5,
+       154.5,
+       510.8
+      ]
+     },
+     {
+      "text": "Price: $77,017 | BTC Supply Last Moved In Profit: 61.1% | BTC Supply Last Moved In Loss: 38.9%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 77016.64,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       242.3,
+       345.3,
+       302.3,
+       357.4
+      ]
+     },
+     {
+      "text": "▲ 13.8%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       13.7,
+       345.7,
+       23.9,
+       349.4
+      ]
+     }
+    ],
+    "legend": [
+     148.4,
+     339.5,
+     250.6,
+     345.2
+    ],
+    "titleBox": [
+     144.6,
+     333.2,
+     255,
+     338.2
+    ],
+    "toolbar": {
+     "hidden": true,
+     "scrollWidth": 0,
+     "clientWidth": 0,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 390,
+     "innerHeight": 844,
+     "scrollWidth": 390,
+     "scrollHeight": 844
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t094",
+   "date": "2012-04-12",
+   "shown": "2012-04-12",
+   "why": "random",
+   "view": "btc-lthsth",
+   "window": "landscape",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2012-04-12",
+    "spot": 4.93,
+    "profitPctCoin": 66.345175,
+    "profitPct": 26.702436,
+    "coin": true,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 8771140.328154,
+     "value": 42442778.557056,
+     "maxPrice": 29.58,
+     "bands": 23,
+     "sth": 3385854.752814,
+     "lth": 5385285.57534
+    },
+    "title": "Bitcoin URPD (% BTC, LTH/STH) as of 12 Apr 2012",
+    "counter": "1191/6510",
+    "dayNumber": 1191,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     30.048
+    ],
+    "yRange": [
+     0,
+     3.581442
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 38.602218,
+      "positive": 115,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 61.397782,
+      "positive": 509,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Cycle 1 Bottom",
+      "xref": "x2",
+      "yref": "y3",
+      "x": "2011-11-18",
+      "y": 2.14,
+      "width": null,
+      "color": false,
+      "box": [
+       291.4,
+       350.1,
+       332.7,
+       358.1
+      ]
+     },
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       26.8,
+       380,
+       331.5,
+       387.2
+      ]
+     },
+     {
+      "text": "Price: $4.93 | BTC Supply Last Moved In Profit: 66.3% | BTC Supply Last Moved In Loss: 33.7%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 4.93,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       161.8,
+       28.9,
+       291.8,
+       55.1
+      ]
+     },
+     {
+      "text": "▲ 21.9%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       26.8,
+       29.8,
+       48.7,
+       37.8
+      ]
+     }
+    ],
+    "legend": [
+     319.7,
+     16.5,
+     540.8,
+     28.7
+    ],
+    "titleBox": [
+     311.5,
+     3.4,
+     549,
+     13.4
+    ],
+    "toolbar": {
+     "hidden": true,
+     "scrollWidth": 0,
+     "clientWidth": 0,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 844,
+     "innerHeight": 390,
+     "scrollWidth": 844,
+     "scrollHeight": 390
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t086",
+   "date": "2012-11-28",
+   "shown": "2012-11-28",
+   "why": "halving 1",
+   "view": "btc-lthsth",
+   "window": "laptop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2012-11-28",
+    "spot": 12.22,
+    "profitPctCoin": 87.240306,
+    "profitPct": 72.267893,
+    "coin": true,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 10501314.943512,
+     "value": 73748775.168022,
+     "maxPrice": 29.58,
+     "bands": 23,
+     "sth": 4177445.811768,
+     "lth": 6323869.131744
+    },
+    "title": "Bitcoin URPD (% BTC, LTH/STH) as of 28 Nov 2012",
+    "counter": "1421/6510",
+    "dayNumber": 1421,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     30.048
+    ],
+    "yRange": [
+     0,
+     2.323318
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 39.780216,
+      "positive": 192,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 60.219784,
+      "positive": 509,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       67.5,
+       700.4,
+       789.5,
+       717.4
+      ]
+     },
+     {
+      "text": "Price: $12 | BTC Supply Last Moved In Profit: 87.2% | BTC Supply Last Moved In Loss: 12.8%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 12.22,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       555.5,
+       93.4,
+       863.5,
+       155.4
+      ]
+     },
+     {
+      "text": "▲ 18.0%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       67.5,
+       95.4,
+       119.5,
+       114.4
+      ]
+     }
+    ],
+    "legend": [
+     397.5,
+     63.9,
+     921.5,
+     92.9
+    ],
+    "titleBox": [
+     377.5,
+     31.9,
+     941.5,
+     56.9
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1604,
+     "clientWidth": 1604,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1280,
+     "innerHeight": 720,
+     "scrollWidth": 1280,
+     "scrollHeight": 720
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t001",
+   "date": "2009-01-03",
+   "shown": "2009-01-03",
+   "why": "genesis day",
+   "view": "usd-lthsth",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2009-01-03",
+    "spot": null,
+    "profitPctCoin": null,
+    "profitPct": null,
+    "coin": false,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 100
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 0,
+     "value": 0,
+     "maxPrice": 0,
+     "bands": 23,
+     "sth": 0,
+     "lth": 0
+    },
+    "title": "Bitcoin URPD (% USD, LTH/STH) as of 03 Jan 2009",
+    "counter": "1/6510",
+    "dayNumber": 1,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1.0016
+    ],
+    "yRange": [
+     0,
+     1
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       67.5,
+       980.5,
+       789.5,
+       997.5
+      ]
+     },
+     {
+      "text": "No coins yet | The genesis block's 50 BTC can never be spent.",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0.5,
+      "y": 0.62,
+      "width": null,
+      "color": false,
+      "box": [
+       631.5,
+       391.5,
+       1007.5,
+       442.5
+      ]
+     }
+    ],
+    "legend": [
+     605,
+     70,
+     1034,
+     99
+    ],
+    "titleBox": [
+     537.5,
+     38,
+     1101.5,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t003",
+   "date": "2009-01-09",
+   "shown": "2009-01-09",
+   "why": "first spendable coins",
+   "view": "usd-age",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2009-01-09",
+    "spot": null,
+    "profitPctCoin": null,
+    "profitPct": null,
+    "coin": false,
+    "split": false,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 100
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 700,
+     "value": 0,
+     "maxPrice": 0,
+     "bands": 23,
+     "sth": 700,
+     "lth": 0
+    },
+    "title": "Bitcoin URPD (% USD, AGE) as of 09 Jan 2009",
+    "counter": "2/6510",
+    "dayNumber": 2,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1.0016
+    ],
+    "yRange": [
+     0,
+     1
+    ],
+    "bars": [
+     {
+      "name": "<1h",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "1h-1d",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "1d-1w",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "1w-1m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "1m-2m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "2m-3m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "3m-4m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "4m-5m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "5m-6m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "6m-9m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "9m-1y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "1y-18m",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "18m-2y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "2y-3y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "3y-4y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "4y-5y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "5y-6y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "6y-7y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "7y-8y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "8y-10y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "10y-12y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "12y-15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": ">15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       67.5,
+       980.5,
+       789.5,
+       997.5
+      ]
+     },
+     {
+      "text": "No USD value yet | Every coin last moved before the first BTC/USD close (16 Aug 2010).",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0.5,
+      "y": 0.62,
+      "width": null,
+      "color": false,
+      "box": [
+       549.5,
+       403.5,
+       1089.5,
+       454.5
+      ]
+     }
+    ],
+    "legend": [
+     100.5,
+     70,
+     1538.5,
+     118
+    ],
+    "titleBox": [
+     561.5,
+     38,
+     1077.5,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t004",
+   "date": "2009-01-09",
+   "shown": "2009-01-09",
+   "why": "first spendable coins",
+   "view": "btc-lthsth",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2009-01-09",
+    "spot": null,
+    "profitPctCoin": null,
+    "profitPct": null,
+    "coin": true,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 700,
+     "value": 0,
+     "maxPrice": 0,
+     "bands": 23,
+     "sth": 700,
+     "lth": 0
+    },
+    "title": "Bitcoin URPD (% BTC, LTH/STH) as of 09 Jan 2009",
+    "counter": "2/6510",
+    "dayNumber": 2,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1.0016
+    ],
+    "yRange": [
+     0,
+     100
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 100,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       61.5,
+       980.5,
+       783.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Every coin is at $0 | Every coin last moved before the first BTC/USD close (16 Aug 2010).",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0.5,
+      "y": 0.62,
+      "width": null,
+      "color": false,
+      "box": [
+       546.5,
+       391.5,
+       1086.5,
+       442.5
+      ]
+     }
+    ],
+    "legend": [
+     602,
+     70,
+     1031,
+     99
+    ],
+    "titleBox": [
+     534.5,
+     38,
+     1098.5,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t110",
+   "date": "2017-08-04",
+   "shown": "2017-08-04",
+   "why": "random",
+   "view": "btc-lthsth",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": [
+    0.3,
+    0.45
+   ],
+   "events": [],
+   "facts": {
+    "date": "2017-08-04",
+    "spot": 2848.54,
+    "profitPctCoin": 97.450152,
+    "profitPct": 93.532611,
+    "coin": true,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": {
+     "lo": 885.0336,
+     "hi": 1334.6496
+    },
+    "coinsInMark": true,
+    "raw": {
+     "supply": 16488548.59357,
+     "value": 18595688564.79812,
+     "maxPrice": 2958,
+     "bands": 23,
+     "sth": 6234489.286121,
+     "lth": 10254059.307449
+    },
+    "title": "Bitcoin URPD (% BTC, LTH/STH) as of 04 Aug 2017",
+    "counter": "3131/6510",
+    "dayNumber": 3131,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     2962.7328
+    ],
+    "yRange": [
+     0,
+     1.972468
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 37.811025,
+      "positive": 439,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 62.188975,
+      "positive": 276,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       74.5,
+       980.5,
+       796.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Price: $2,849 | BTC Supply Last Moved In Profit: 97.5% | BTC Supply Last Moved In Loss: 2.5%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 2848.54,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       1199.5,
+       99.5,
+       1507.5,
+       161.5
+      ]
+     },
+     {
+      "text": "▲ 14.1%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       74.5,
+       101.5,
+       126.5,
+       120.5
+      ]
+     },
+     {
+      "text": "Price: $885 – $1,335 | All LTH Within: 54 Days | (by 27 Sept 2017)",
+      "xref": "x",
+      "yref": "paper",
+      "x": 885.0336,
+      "y": 1,
+      "width": 209.332268,
+      "color": true,
+      "box": [
+       524.5,
+       102.5,
+       744.5,
+       164.5
+      ]
+     }
+    ],
+    "legend": [
+     561,
+     70,
+     1085,
+     99
+    ],
+    "titleBox": [
+     541,
+     38,
+     1105,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t111",
+   "date": "2010-05-18",
+   "shown": "2010-05-18",
+   "why": "first day the BTC video shows",
+   "view": "btc-age",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": [
+    0.05,
+    0.12
+   ],
+   "events": [],
+   "facts": {
+    "date": "2010-05-18",
+    "spot": null,
+    "profitPctCoin": null,
+    "profitPct": null,
+    "coin": true,
+    "split": false,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 99.8
+    },
+    "mark": {
+     "lo": 0.0496,
+     "hi": 0.1216
+    },
+    "coinsInMark": false,
+    "raw": {
+     "supply": 2817750,
+     "value": 0,
+     "maxPrice": 0,
+     "bands": 23,
+     "sth": 1384751.13,
+     "lth": 1432998.87
+    },
+    "title": "Bitcoin URPD (% BTC, AGE) as of 18 May 2010",
+    "counter": "496/6510",
+    "dayNumber": 496,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1.0016
+    ],
+    "yRange": [
+     0,
+     100
+    ],
+    "bars": [
+     {
+      "name": "<1h",
+      "sum": 0.012421,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "1h-1d",
+      "sum": 0.539934,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "1d-1w",
+      "sum": 2.585489,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "1w-1m",
+      "sum": 9.941251,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "1m-2m",
+      "sum": 10.110216,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "2m-3m",
+      "sum": 8.674578,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "3m-4m",
+      "sum": 9.647735,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "4m-5m",
+      "sum": 7.632237,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "5m-6m",
+      "sum": 4.026222,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "6m-9m",
+      "sum": 9.78616,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "9m-1y",
+      "sum": 10.82247,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "1y-18m",
+      "sum": 26.221288,
+      "positive": 1,
+      "visible": true
+     },
+     {
+      "name": "18m-2y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "2y-3y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "3y-4y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "4y-5y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "5y-6y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "6y-7y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "7y-8y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "8y-10y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "10y-12y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "12y-15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": ">15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       61.5,
+       980.5,
+       783.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Every coin is at $0 | Every coin last moved before the first BTC/USD close (16 Aug 2010).",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0.5,
+      "y": 0.62,
+      "width": null,
+      "color": false,
+      "box": [
+       546.5,
+       403.5,
+       1086.5,
+       454.5
+      ]
+     },
+     {
+      "text": "Price: | $0.05 – | $0.12 | No BTC | Last Moved | Here",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0.0496,
+      "y": 1,
+      "width": 90.618211,
+      "color": false,
+      "box": [
+       139.5,
+       121.5,
+       241.5,
+       234.5
+      ]
+     }
+    ],
+    "legend": [
+     97.5,
+     70,
+     1535.5,
+     118
+    ],
+    "titleBox": [
+     558.5,
+     38,
+     1074.5,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t109",
+   "date": "2015-03-06",
+   "shown": "2015-03-13",
+   "why": "random",
+   "view": "usd-age",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {
+    "pin": true
+   },
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2015-03-13",
+    "spot": 287.83,
+    "profitPctCoin": 53.068882,
+    "profitPct": 16.658329,
+    "coin": false,
+    "split": false,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 100
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 13937589.771525,
+     "value": 4177509427.275709,
+     "maxPrice": 1161,
+     "bands": 23,
+     "sth": 3966263.054961,
+     "lth": 9971326.716564
+    },
+    "title": "Bitcoin URPD (% USD, AGE) as of 13 Mar 2015",
+    "counter": "2256/6510",
+    "dayNumber": 2256,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     1162.8576
+    ],
+    "yRange": [
+     0,
+     1.293273
+    ],
+    "bars": [
+     {
+      "name": "<1h",
+      "sum": 0.084348,
+      "positive": 7,
+      "visible": true
+     },
+     {
+      "name": "1h-1d",
+      "sum": 1.179434,
+      "positive": 10,
+      "visible": true
+     },
+     {
+      "name": "1d-1w",
+      "sum": 5.601337,
+      "positive": 27,
+      "visible": true
+     },
+     {
+      "name": "1w-1m",
+      "sum": 4.217978,
+      "positive": 41,
+      "visible": true
+     },
+     {
+      "name": "1m-2m",
+      "sum": 3.724928,
+      "positive": 75,
+      "visible": true
+     },
+     {
+      "name": "2m-3m",
+      "sum": 5.01583,
+      "positive": 61,
+      "visible": true
+     },
+     {
+      "name": "3m-4m",
+      "sum": 5.314808,
+      "positive": 48,
+      "visible": true
+     },
+     {
+      "name": "4m-5m",
+      "sum": 2.655751,
+      "positive": 79,
+      "visible": true
+     },
+     {
+      "name": "5m-6m",
+      "sum": 3.16821,
+      "positive": 114,
+      "visible": true
+     },
+     {
+      "name": "6m-9m",
+      "sum": 10.906895,
+      "positive": 118,
+      "visible": true
+     },
+     {
+      "name": "9m-1y",
+      "sum": 14.068209,
+      "positive": 187,
+      "visible": true
+     },
+     {
+      "name": "1y-18m",
+      "sum": 40.117764,
+      "positive": 580,
+      "visible": true
+     },
+     {
+      "name": "18m-2y",
+      "sum": 3.435243,
+      "positive": 119,
+      "visible": true
+     },
+     {
+      "name": "2y-3y",
+      "sum": 0.328869,
+      "positive": 29,
+      "visible": true
+     },
+     {
+      "name": "3y-4y",
+      "sum": 0.175323,
+      "positive": 18,
+      "visible": true
+     },
+     {
+      "name": "4y-5y",
+      "sum": 0.005072,
+      "positive": 3,
+      "visible": true
+     },
+     {
+      "name": "5y-6y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "6y-7y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "7y-8y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "8y-10y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "10y-12y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": "12y-15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     },
+     {
+      "name": ">15y",
+      "sum": 0,
+      "positive": 0,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Cycle 2 Bottom",
+      "xref": "x2",
+      "yref": "y3",
+      "x": "2015-01-14",
+      "y": 175.82,
+      "width": null,
+      "color": false,
+      "box": [
+       915.5,
+       818.5,
+       1013.5,
+       837.5
+      ]
+     },
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       74.5,
+       980.5,
+       796.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Price: $288 | USD Value Last Moved In Profit: 16.7% | USD Value Last Moved In Loss: 83.3% | BOTTOM SIGNAL — In Loss ≥ 80%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 287.83,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       451.5,
+       118.5,
+       751.5,
+       197.5
+      ]
+     },
+     {
+      "text": "Pinned 1.29% · 06 Mar 2015",
+      "xref": "paper",
+      "yref": "y",
+      "x": 0,
+      "y": 1.293273,
+      "width": null,
+      "color": false,
+      "box": [
+       78.5,
+       120.5,
+       255.5,
+       139.5
+      ]
+     },
+     {
+      "text": "▲ 1.64% (+1)",
+      "xref": "x",
+      "yref": "paper",
+      "x": 0,
+      "y": 1,
+      "width": null,
+      "color": false,
+      "box": [
+       74.5,
+       141.5,
+       158.5,
+       160.5
+      ]
+     }
+    ],
+    "legend": [
+     104,
+     70,
+     1542,
+     118
+    ],
+    "titleBox": [
+     565,
+     38,
+     1081,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  },
+  {
+   "id": "t081",
+   "date": "latest",
+   "shown": "2026-11-04",
+   "why": "the day in progress",
+   "view": "usd-lthsth",
+   "window": "desktop",
+   "lang": "en",
+   "settings": {},
+   "mark": null,
+   "events": [],
+   "facts": {
+    "date": "2026-11-04",
+    "spot": 77016.64,
+    "profitPctCoin": 61.050069,
+    "profitPct": 33.111401,
+    "coin": false,
+    "split": true,
+    "lang": "en",
+    "settings": {
+     "bins": 625,
+     "smoothing": 0.24,
+     "ymax": 100
+    },
+    "mark": null,
+    "coinsInMark": null,
+    "raw": {
+     "supply": 20107472.990157,
+     "value": 1085203815863.2407,
+     "maxPrice": 125700,
+     "bands": 23,
+     "sth": 3788076.716513,
+     "lth": 16319396.273644
+    },
+    "title": "Bitcoin URPD (% USD, LTH/STH) as of 04 Nov 2026",
+    "counter": "6510/6510",
+    "dayNumber": 6510,
+    "days": 6510,
+    "notice": "",
+    "loading": false,
+    "xRange": [
+     0,
+     125901.12
+    ],
+    "yRange": [
+     0,
+     1.889905
+    ],
+    "bars": [
+     {
+      "name": "Short-Term Holders (STH)",
+      "sum": 26.477668,
+      "positive": 154,
+      "visible": true
+     },
+     {
+      "name": "Long-Term Holders (LTH)",
+      "sum": 73.522332,
+      "positive": 626,
+      "visible": true
+     }
+    ],
+    "annotations": [
+     {
+      "text": "Powered by Bitview.space & Bitcoin Core. Credits: Antoine Le Calvez, Renato Shirakashi, James Check, @_nym21_",
+      "xref": "paper",
+      "yref": "paper",
+      "x": 0,
+      "y": 0,
+      "width": null,
+      "color": true,
+      "box": [
+       74.5,
+       980.5,
+       796.5,
+       997.5
+      ]
+     },
+     {
+      "text": "Price: $77,017 | USD Value Last Moved In Profit: 33.1% | USD Value Last Moved In Loss: 66.9%",
+      "xref": "x",
+      "yref": "paper",
+      "x": 77016.64,
+      "y": 1,
+      "width": null,
+      "color": true,
+      "box": [
+       996.5,
+       99.5,
+       1296.5,
+       161.5
+      ]
+     }
+    ],
+    "legend": [
+     561,
+     70,
+     1085,
+     99
+    ],
+    "titleBox": [
+     541,
+     38,
+     1105,
+     63
+    ],
+    "toolbar": {
+     "hidden": false,
+     "scrollWidth": 1600,
+     "clientWidth": 1600,
+     "belowFirstRow": 0
+    },
+    "page": {
+     "innerWidth": 1600,
+     "innerHeight": 1000,
+     "scrollWidth": 1600,
+     "scrollHeight": 1000
+    },
+    "youtube": [
+     "https://www.youtube.com/watch?v=dStoOQjAowg",
+     "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+     "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+     "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+    ]
+   }
+  }
+ ],
+ "site": {
+  "youtube": {
+   "usd-age": {
+    "id": "oBj5SjpVkv0",
+    "end": "2026-10-21"
+   },
+   "btc-age": {
+    "id": "kWpY7nZqYO4",
+    "end": "2026-10-21"
+   },
+   "usd-lthsth": {
+    "id": "dStoOQjAowg",
+    "end": "2026-10-21"
+   },
+   "btc-lthsth": {
+    "id": "FDKC7d2vhd0",
+    "end": "2026-10-21"
+   }
+  },
+  "scales": {
+   "start": "2009-01-03",
+   "end": "2026-11-02"
+  },
+  "links": [
+   "https://www.youtube.com/watch?v=dStoOQjAowg",
+   "https://www.youtube.com/watch?v=oBj5SjpVkv0",
+   "https://www.youtube.com/watch?v=FDKC7d2vhd0",
+   "https://www.youtube.com/watch?v=kWpY7nZqYO4"
+  ],
+  "today": "2026-11-04"
+ }
+}

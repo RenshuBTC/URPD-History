@@ -1,0 +1,9 @@
+{
+  "name": "urpd-evals",
+  "private": true,
+  "type": "module",
+  "description": "The site's evals (see README.md): draws traces of the chart in headless Chromium and checks them. Not part of the site, which has no build step.",
+  "dependencies": {
+    "playwright": "1.47.2"
+  }
+}

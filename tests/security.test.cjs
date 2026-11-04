@@ -205,6 +205,19 @@ test('the site check compares the live page, the pages it links to and the data 
   for (const f of own) assert.ok(check.includes(f), f);
 });
 
+test('the evals workflow can read the repository and nothing else, holds no secret and installs no package scripts', () => {
+  const evals = workflows.find(w => w.f === 'evals.yml').text;
+  assert.match(evals, /^permissions:\n  contents: read\n/m);
+  assert.doesNotMatch(evals, /secrets\.|GH_TOKEN|github\.token|contents: write|id-token/);
+  assert.match(evals, /persist-credentials: false/);
+  assert.match(evals, /npm ci --ignore-scripts/);
+  // The one expression is the hand-run's plan, read through the environment, never pasted into a script.
+  assert.deepEqual([...evals.matchAll(/\$\{\{[^}]*\}\}/g)].map(m => m[0]), ["${{ inputs.plan || 'daily' }}"]);
+  assert.match(evals, /PLAN: \$\{\{ inputs\.plan \|\| 'daily' \}\}/);
+  const lock = JSON.parse(fs.readFileSync(path.join(ROOT, 'evals', 'package-lock.json'), 'utf8'));
+  for (const [name, p] of Object.entries(lock.packages)) if (name) assert.match(p.integrity || '', /^sha512-/, name + ' is pinned by its hash');
+});
+
 test('the privacy page runs nothing and loads nothing from elsewhere, and the explainer links to it', () => {
   const page = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
   assert.match(page, /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">/);

@@ -162,6 +162,13 @@ rules (`tests/security.test.cjs`). GitHub Actions runs the same checks on pushes
 pull requests. After editing an inline script in `index.html`, run
 `node tools/update-csp.cjs` so the Content-Security-Policy allows the new version.
 
+The evals ([evals/README.md](evals/README.md)) check the live chart the way a visitor sees it. Every day the Evals
+workflow draws a sample of days in headless Chromium, in every view and in other windows and languages, and checks
+each one: it draws, it is the day asked for, its supply, realized cap, LTH/STH split and coins in profit match
+Bitcoin Research Kit's own series, its words are clear of each other and true, and the video menu and axis history
+are current. Run them with `node evals/run.mjs` after `npm ci --ignore-scripts` and `npx playwright install
+chromium` in `evals/`.
+
 ## Credits
 
 - **URPD** — introduced by [Renato Shirakashi](https://x.com/renato_shira) in April 2020, popularised and extended by [James Check](https://x.com/_checkmatey_)

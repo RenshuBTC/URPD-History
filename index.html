@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-x0HjIswmv9K2tCjPactCmt4NFpPygxBQUggHh//OU+o=' 'sha256-aed8VLqfItw2091i0UsvFNmbxnFnJF+lElE1bAQAKSk=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-WLFwMJY95lA4PS1dbj3kTbL8OoFeviTHgaNPZw0hESk=' 'sha256-aed8VLqfItw2091i0UsvFNmbxnFnJF+lElE1bAQAKSk=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -495,7 +495,8 @@ var T = {
     splitTitle: "LTH/STH: each bar split at 150 days into short-term holders (STH, coins that moved within the last 150 days) and long-term holders (LTH, coins unmoved for 150 days or more)",
     priceUSD: "Price When Last Moved [USD]", usdInvested: "Percent of USD Value Last Moved [%]", btcSupply: "Percent of BTC Supply Last Moved [%]",
     hoverPrice: "Price: $", hoverPctTotal: "Percent of Total: ",
-    markLth: "All LTH Within: ", markDays: " Days", markAllLth: "Already All Long-Term Holders", markBy: " (by ", markByEnd: ")",
+    markLth: "All LTH Within: ", markDays: " Days", markAllLth: "Already All Long-Term Holders", markBy: " (by ", markByEnd: ")", markNone: "No BTC Last Moved Here", markNoneShort: "No BTC",
+    emptyNoneHead: "No coins yet", emptyNoneWhy: "The genesis block's 50 BTC can never be spent.", emptyZeroHead: "Every coin is at $0", emptyUsdHead: "No USD value yet", emptyWhyA: "Every coin last moved before the first BTC/USD close (", emptyWhyB: ").",
     hoverTotalUSD: "Total Value When Last Moved: ", hoverTotalBTC: "Total Supply: ", hoverDate: "Date: ", usdProfit: "USD Value Last Moved In Profit: ", usdLoss: "USD Value Last Moved In Loss: ", btcProfit: "BTC Supply Last Moved In Profit: ", btcLoss: "BTC Supply Last Moved In Loss: ",
     langBtn: "\u4e2d\u6587",
     notFound: "Exact date not found, showing nearest: ", errBRK: "Could not reach bitview.space. Check your connection and try again.",
@@ -520,7 +521,8 @@ var T = {
     splitTitle: "长/短期：每根柱子以 150 天为界，分成短期持有者（STH，过去 150 天内移动过的币）与长期持有者（LTH，150 天或更久没有移动的币）",
     priceUSD: "最后移动时的价格 [美元]", usdInvested: "最后移动的美元价值占比 [%]", btcSupply: "最后移动的 BTC 供应占比 [%]",
     hoverPrice: "\u4ef7\u683c: $", hoverPctTotal: "占总量百分比: ",
-    markLth: "全部成为长期持有者: ", markDays: " 天内", markAllLth: "已全部为长期持有者", markBy: "（", markByEnd: "前）",
+    markLth: "全部成为长期持有者: ", markDays: " 天内", markAllLth: "已全部为长期持有者", markBy: "（", markByEnd: "前）", markNone: "没有最后在此移动的 BTC", markNoneShort: "无 BTC",
+    emptyNoneHead: "尚无币", emptyNoneWhy: "创世区块的 50 BTC 永远无法花费。", emptyZeroHead: "所有币都在 $0", emptyUsdHead: "尚无美元价值", emptyWhyA: "每枚币最后一次移动都早于首个 BTC/USD 收盘价（", emptyWhyB: "）。",
     hoverTotalUSD: "最后移动时的总价值: ", hoverTotalBTC: "总供应量: ", hoverDate: "日期: ", usdProfit: "最后移动的美元价值处于盈利: ", usdLoss: "最后移动的美元价值处于亏损: ", btcProfit: "最后移动的 BTC 供应处于盈利: ", btcLoss: "最后移动的 BTC 供应处于亏损: ",
     langBtn: "日本語",
     notFound: "\u672a\u627e\u5230\u786e\u5207\u65e5\u671f\uff0c\u663e\u793a\u6700\u8fd1: ", errBRK: "无法连接 bitview.space。请检查网络后重试。",
@@ -556,7 +558,8 @@ var T = {
     btcSupply: "最終移動 BTC 供給量の割合 [%]",
     hoverPrice: "価格: $",
     hoverPctTotal: "全体に占める割合: ",
-    markLth: "すべて長期保有者になるまで: ", markDays: " 日以内", markAllLth: "すでにすべて長期保有者", markBy: "（", markByEnd: "まで）",
+    markLth: "すべて長期保有者になるまで: ", markDays: " 日以内", markAllLth: "すでにすべて長期保有者", markBy: "（", markByEnd: "まで）", markNone: "ここで最後に動いた BTC はありません", markNoneShort: "BTC なし",
+    emptyNoneHead: "まだコインがありません", emptyNoneWhy: "ジェネシスブロックの 50 BTC は使えません。", emptyZeroHead: "すべてのコインが $0 です", emptyUsdHead: "まだ USD 評価額がありません", emptyWhyA: "どのコインも最初の BTC/USD 終値（", emptyWhyB: "）より前に最後に動きました。",
     hoverTotalUSD: "最終移動時の評価額の合計: ", hoverTotalBTC: "供給量の合計: ", hoverDate: "日付: ",
     usdProfit: "含み益の最終移動 USD 評価額: ",
     usdLoss: "含み損の最終移動 USD 評価額: ",
@@ -1243,6 +1246,21 @@ function daysSincePriceIn(dateStr, a, b) {
   }
   return LTH_DAYS;
 }
+// Whether any coin last moved at a recorded price in [a, b) on the day, in any age band: a marked range over none
+// says so rather than calling coins that are not there long-term holders (see markBoxLayout). Every band's prices
+// holding coins, sorted, built once for the day.
+function coinsIn(data, a, b) {
+  var age = data.rawAge;
+  if (!age) return true;   // not known: claim nothing either way
+  if (!data.allPrices) {
+    var ps = [];
+    age.forEach(function(c) { if (c) for (var k in c) if (c[k] > 0) ps.push(Number(k)); });
+    data.allPrices = Float64Array.from(ps).sort();
+  }
+  var p = data.allPrices, lo = 0, hi = p.length;   // the first price at or above a
+  while (lo < hi) { var mid = (lo + hi) >> 1; if (p[mid] < a) lo = mid + 1; else hi = mid; }
+  return lo < p.length && p[lo] < b;
+}
 // The most days until every coin last moved in [a, b) is a long-term holder, as of the day: LTH_DAYS less the youngest
 // age any of them can have. That age is at least the youngest short-term band holding coins there (from the recorded
 // prices, not the smoothed bars) and at least the days since the price was last inside the range, since a coin only
@@ -1311,23 +1329,26 @@ function markTextPx(str, size) { var w = 0; for (var i = 0; i < str.length; i++)
 // The marked range's box, for [lo, hi) on the day in ctx.data, laid out the same whether drawChart draws it or the live
 // box shows it while dragging: inside the mark, as wide as it is, at the top, inset 3 px from its white edges, the text
 // wrapped to that width at the largest size from 13 px down to 9 that lets every word fit. It gives the range and the
-// most days until every coin there is a long-term holder (see daysToAllLth), in AGE as in LTH/STH. A box too tall for
+// most days until every coin there is a long-term holder (see daysToAllLth), in AGE as in LTH/STH, or, over a range
+// where no coin last moved, that none did (No BTC Last Moved Here; see coinsIn). A box too tall for
 // the plot keeps just the days; a mark too narrow for the words keeps the number of days alone, on less padding; one
 // too narrow even for that: null. It drops below the price box and the top-left labels where it would meet them.
 // Returns the rows (HTML), the font size, padding, inset, the width for the text and how far down from the top of the
 // plot the box sits.
 function markBoxLayout(data, lo, hi, ctx) {
   var price = function(v) { return v.toLocaleString("en-US", {maximumFractionDigits: v < 10 ? 2 : 0}); };
-  var days = daysToAllLth(data, lo, hi);
+  var none = !coinsIn(data, lo, hi);
+  var days = none ? 0 : daysToAllLth(data, lo, hi);
   if (days === null) loadPriceHighLow();
   // With the date it falls on: the day shown plus that many days.
   var byDate = days > 0 ? new Date(Date.parse(data.dateStr + "T00:00:00Z") + days * 864e5)
     .toLocaleDateString(L3("en-GB", "zh-CN", "ja-JP"), {day: "2-digit", month: "short", year: "numeric", timeZone: "UTC"}) : "";
   var range = {text: ctx.hp + price(lo) + " \u2013 $" + price(hi)};
-  var allLth = {color: LTH_COLOR, text: days === null ? t("markLth") + "\u2026" : days === 0 ? t("markAllLth") :
+  var allLth = none ? {text: t("markNone")} : {color: LTH_COLOR, text: days === null ? t("markLth") + "\u2026" : days === 0 ? t("markAllLth") :
     t("markLth") + days + t("markDays") + t("markBy") + byDate + t("markByEnd")};
-  // The number of days alone, for a narrow mark: "79 Days", and "0 Days" when every coin there already is one.
-  var brief = {color: LTH_COLOR, text: days === null ? "\u2026" : days + t("markDays")};
+  // The number of days alone, for a narrow mark: "79 Days", "0 Days" when every coin there already is one, and "No BTC"
+  // over a range where none last moved.
+  var brief = none ? {text: t("markNoneShort")} : {color: LTH_COLOR, text: days === null ? "\u2026" : days + t("markDays")};
   var inset = 3, pad = 5;
   var x0 = lo / ctx.xSpan, x1 = hi / ctx.xSpan, y0 = 0;
   (ctx.topLeft || []).forEach(function(k) { if (x0 < k.x1 && y0 < k.y1) y0 = k.y1 + 4; });
@@ -1356,6 +1377,27 @@ function markBoxLayout(data, lo, hi, ctx) {
     return null;
   };
   return place([range, allLth], pad) || place([allLth], pad) || place([brief], 1);
+}
+// The first day with a BTC/USD close above zero (16 Aug 2010 in BRK's series), found once the closes are in; "" if none.
+var firstClose = null;
+function firstCloseDate() {
+  if (firstClose === null && priceArray && priceDates) {
+    firstClose = "";
+    for (var i = 0; i < priceArray.length; i++) if (priceArray[i] > 0 && priceDates[i]) { firstClose = priceDates[i]; break; }
+  }
+  return firstClose || "";
+}
+// What a day with nothing to draw in a weighting says instead of an empty plot (see drawChart): no coins at all (the
+// genesis day), or every coin at $0, because each last moved before the first BTC/USD close; in % USD, where a coin
+// at $0 has no value, that is no value yet. Its two lines, or null for a day with bars to draw.
+function emptyDayNote(data, coin) {
+  var supply = 0, value = 0;
+  data.aggAll.forEach(function(b) { supply += b.supply; value += b.invested; });
+  if (!(supply > 0)) return [t("emptyNoneHead"), t("emptyNoneWhy")];
+  if (coin ? data.maxPrice > 0 : value > 0) return null;
+  var first = firstCloseDate();
+  var when = first ? new Date(first + "T00:00:00").toLocaleDateString(L3("en-GB", "zh-CN", "ja-JP"), {day: "2-digit", month: "short", year: "numeric"}) : "";
+  return [t(coin ? "emptyZeroHead" : "emptyUsdHead"), when ? t("emptyWhyA") + when + t("emptyWhyB") : ""];
 }
 // The daily highs and lows (for daysSincePriceIn), fetched once, the first time a marked range needs them.
 function loadPriceHighLow() {
@@ -1810,6 +1852,15 @@ function drawChart(data, plotSeq, navigationSeq) {
   var annotations = [
     {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:creditWrap?-76:-62,text:creditShown,showarrow:false,font:{size:creditSize,color:TH.credit,family:FONT},xanchor:"left",align:"left"}
   ];
+
+  // A day with nothing to draw in this weighting says why, in a box in the middle of the plot (see emptyDayNote).
+  var emptyNote = emptyDayNote(data, isCoin);
+  if (emptyNote) {
+    var noteSize = Math.max(9, Math.min(13, Math.floor(13 * (plotW - 40) / (Math.max(textPx(emptyNote[0], 13), textPx(emptyNote[1], 13)) * 1.07))));
+    annotations.push({xref:"paper",yref:"paper",x:0.5,y:0.62,xanchor:"center",yanchor:"middle",align:"center",showarrow:false,
+      text:"<b>" + plotlyText(emptyNote[0]) + "</b>" + (emptyNote[1] ? "<br>" + plotlyText(emptyNote[1]) : ""),
+      font:{color:TH.ink,size:noteSize,family:FONT},bgcolor:TH.boxBg,bordercolor:TH.boxBorder,borderwidth:1,borderpad:8});
+  }
 
   // Spot line and its label are drawn above everything else so they stay readable while navigating. The line
   // is a 1 px white dash, thinner than a bar, so it never hides a tall bar behind it. It turns yellow while the bottom

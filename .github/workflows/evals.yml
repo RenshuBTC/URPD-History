@@ -1,0 +1,53 @@
+name: Evals
+
+# Draws a sample of the live chart every day, in headless Chromium, as a visitor sees it, and checks each trace with
+# the evaluators in evals/ (see evals/README.md): the day draws, it is the day asked for, its totals match BRK's own
+# series, its words are clear of each other and say nothing untrue, and the video menu and the axis history are
+# current. The sample changes every day (it is seeded with the date), so over time it covers the whole history, every
+# view, window and language. A red run means a check failed; GitHub emails the owner.
+# Run it by hand (Actions -> Evals -> Run workflow) with plan "review" for the whole error-analysis set, 117 traces
+# with screenshots and a review page, kept for 30 days as the run's "evals" artifact.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: "daily: a seeded sample of about 12 traces; review: all 117, with screenshots"
+        default: daily
+        type: choice
+        options: [daily, review]
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install the browser
+        working-directory: evals
+        run: |
+          npm ci --ignore-scripts
+          for k in 1 2 3 4; do node_modules/.bin/playwright install --with-deps chromium && break; [ "$k" = 4 ] && exit 1; sleep $((k * 30)); done
+      - name: Draw and check the live site
+        env:
+          PLAN: ${{ inputs.plan || 'daily' }}
+        run: |
+          if [ "$PLAN" = review ]; then node evals/run.mjs --plan review --shots --out evals/out/run
+          else node evals/run.mjs --plan daily --out evals/out/run; fi
+      - name: Keep the traces and the review page
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evals
+          path: evals/out/run
+          retention-days: 30
+          if-no-files-found: ignore

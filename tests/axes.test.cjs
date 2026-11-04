@@ -376,9 +376,19 @@ test('a marked range\'s box gives the range and the most days until every coin t
   c.coinMode = true; assert.equal(await box(), want, 'LTH/STH, % BTC');
   c.splitMode = false; assert.equal(await box(), want, 'AGE, % BTC');
   c.coinMode = false; assert.equal(await box(), want, 'AGE, % USD');
-  // Where no short-term holder is: the coin at $30,000 is three years old.
+  // Where no short-term holder is: the coin at $30,000 is three years old. A mark too narrow for the words: 0 days.
   c.rangeMark = { lo: 25000, hi: 35000 };
   assert.equal(await box(), 'Price: $25,000 \u2013 $35,000 Already All Long-Term Holders');
+  c.rangeMark = { lo: 28000, hi: 32000 };
+  assert.equal(await box(), '0 Days');
+  // Where no coin last moved at all ($40,000 to $50,000), the box says so: it does not call them long-term holders
+  // (error analysis found "Already All Long-Term Holders" and "0 Days" over empty ranges).
+  c.rangeMark = { lo: 40000, hi: 50000 };
+  assert.equal(await box(), 'Price: $40,000 \u2013 $50,000 No BTC Last Moved Here');
+  assert.ok(!markBox().text.includes(c.LTH_COLOR), 'not in the LTH colour: it is not about long-term holders');
+  c.lang = 'zh'; assert.ok((await box()).replace(/ /g, '').endsWith('没有最后在此移动的BTC'));
+  c.lang = 'ja'; assert.ok((await box()).replace(/ /g, '').endsWith('ここで最後に動いたBTCはありません'));
+  c.lang = 'en';
   // Until the daily highs and lows are in, the days wait for them, and AGE asks for them as LTH/STH does.
   let asked = 0;
   c.priceHighLow = null; c.loadPriceHighLow = () => { asked++; };
@@ -416,14 +426,38 @@ test('a marked range\'s box fits the plot and the mark: the days line alone, the
   b = await box(50000, 65000, 100);
   assert.equal(b.text, '150 Days', 'too short for that: the number of days alone'); assert.equal(b.pad, 1, 'on less padding');
   assert.equal(await box(50000, 65000, 80), null, 'too short even for that: no box');
-  // A mark too narrow for the words keeps the number of days alone too; where no short-term holder is, 0 days.
+  // A mark too narrow for the words keeps the number of days alone too; over a range where no coin last moved, No BTC.
   b = await box(58000, 65000, 2000);
   assert.equal(b.text, '150 Days'); assert.equal(b.pad, 1);
   b = await box(20000, 26000, 2000);
-  assert.equal(b.text, 'Price: $20,000 \u2013 $26,000 Already All Long-Term Holders');
+  assert.equal(b.text, 'Price: $20,000 \u2013 $26,000 No BTC Last Moved Here');
   b = await box(20000, 23000, 2000);
-  assert.equal(b.text, '0 Days', 'too narrow for the words');
+  assert.equal(b.text, 'No BTC Last Moved Here', 'too narrow for the range: its line alone');
+  b = await box(20000, 22000, 2000);
+  assert.equal(b.text, 'No BTC', 'too narrow for that: in short'); assert.equal(b.pad, 1);
   assert.equal(await box(20000, 21500, 2000), null, 'too narrow even for that: no box');
+});
+
+test('a day with nothing to draw says why instead of showing an empty plot', async () => {
+  const { c, element } = app();
+  // Three days: no coins at all (the genesis day), every coin at $0 before any close, and a day with a close.
+  const { dates, raws } = market(c, { start: '2010-08-14', n: 3, close: (i) => (i === 2 ? 0.06 : 0),
+    cohorts: (i) => [i === 0 ? {} : i === 1 ? { 0: 50 } : { 0: 50, 0.06: 10 }] });
+  const note = async (i, coin) => {
+    c.coinMode = coin;
+    await c.renderChart(c.buildData(dates[i], raws[i]));
+    const a = element('chart').layout.annotations.find(a => a.xref === 'paper' && a.yref === 'paper' && a.x === 0.5 && a.y === 0.62);
+    return a ? a.text.replace(/<br>/g, ' | ').replace(/<[^>]+>/g, '') : null;
+  };
+  assert.equal(await note(0, false), "No coins yet | The genesis block's 50 BTC can never be spent.");
+  assert.equal(await note(0, true), "No coins yet | The genesis block's 50 BTC can never be spent.");
+  // The first close in this market is 16 Aug 2010, as in BRK's own series.
+  assert.equal(await note(1, false), 'No USD value yet | Every coin last moved before the first BTC/USD close (16 Aug 2010).');
+  assert.equal(await note(1, true), 'Every coin is at $0 | Every coin last moved before the first BTC/USD close (16 Aug 2010).');
+  assert.equal(await note(2, false), null, 'a day with value: no note');
+  assert.equal(await note(2, true), null);
+  c.lang = 'zh'; assert.equal(await note(1, false), '尚无美元价值 | 每枚币最后一次移动都早于首个 BTC/USD 收盘价（2010年8月16日）。');
+  c.lang = 'ja'; assert.equal(await note(1, true), 'すべてのコインが $0 です | どのコインも最初の BTC/USD 終値（2010年8月16日）より前に最後に動きました。');
 });
 
 test('a marked range gives the most days until every coin there is a long-term holder', () => {
