@@ -191,6 +191,7 @@ export const SITE_CHECKS = [
     judge({ youtube, links, today }) {
       const keys = ["usd-lthsth", "usd-age", "btc-lthsth", "btc-age"];
       if (!youtube) return [false, "data/youtube.json did not load"];
+      if (!links) return [false, "no trace drew, so the menu's links could not be read"];
       for (const k of keys) {
         const v = youtube[k];
         if (!v || !/^[A-Za-z0-9_-]{11}$/.test(v.id || "")) return [false, k + " has no video"];

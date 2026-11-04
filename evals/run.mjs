@@ -59,7 +59,7 @@ else {
 }
 const refs = await loadRefs();
 const today = new Date().toISOString().slice(0, 10);
-const links = (traces.find((t) => t.facts && t.facts.youtube && t.facts.youtube.length) || { facts: { youtube: [] } }).facts.youtube;
+const drawn = traces.find((t) => t.facts && t.facts.youtube && t.facts.youtube.length), links = drawn ? drawn.facts.youtube : null;
 const site = { youtube: await siteFile(opt.site, "data/youtube.json"), scales: await siteFile(opt.site, "data/scales.json"), links, today };
 if (server) server.close();
 const result = judge(traces, { ref: refs.ref, inProgress: refs.lastDay }, site);
