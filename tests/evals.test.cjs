@@ -46,6 +46,7 @@ function emptyNote(t) { return t.facts.annotations.some((a) => a.xref === 'paper
 
 const SITE_FAILURES = [
   ['video-links', 'a link falling back to the channel', (s) => { s.links = s.links.map((l, i) => (i ? l : 'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg')); }],
+  ['video-links', 'no trace drew, so the links are unknown', (s) => { s.links = null; }],
   ['video-links', 'videos two months old', (s) => { s.today = new Date(Date.parse(s.youtube['usd-age'].end) + 61 * 864e5).toISOString().slice(0, 10); }],
   ['axis-history', 'the daily job stopped five days ago', (s) => { s.today = new Date(Date.parse(s.scales.end) + 5 * 864e5).toISOString().slice(0, 10); }],
 ];

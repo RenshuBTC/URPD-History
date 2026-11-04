@@ -59,9 +59,21 @@ function pageFacts() {
   };
 }
 
+// Polls a condition in the page until it holds. Not page.waitForFunction: Playwright 1.47 runs that through eval, which
+// the site's Content-Security-Policy refuses (no 'unsafe-eval'), and the evals load the page with its policy on, as a
+// visitor does, so a broken policy fails them.
+async function until(page, fn, arg, timeout = 240000) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    if (await page.evaluate(fn, arg).catch(() => false)) return;
+    if (Date.now() > end) throw new Error("timed out after " + timeout / 1000 + " s waiting for the chart");
+    await page.waitForTimeout(250);
+  }
+}
+
 async function settled(page, date) {
-  await page.waitForFunction((d) => window.lastRenderedData && lastRenderedData.dateStr === d &&
-    document.getElementById("loading").style.display === "none", date, { timeout: 240000 });
+  await until(page, (d) => !!(window.lastRenderedData && lastRenderedData.dateStr === d &&
+    document.getElementById("loading").style.display === "none"), date);
   for (let i = 0; i < 3; i++) { await page.evaluate(() => chartRenderPromise); await page.waitForTimeout(350); }
 }
 
@@ -80,7 +92,7 @@ export async function collect(plan, { site, outDir, shots = false, log = console
     page.on("response", (r) => { if (r.status() >= 400) events.push("HTTP " + r.status() + ": " + r.url().slice(0, 140)); });
     const t0 = Date.now();
     await page.goto(site, { waitUntil: "load", timeout: 120000 });
-    await page.waitForFunction(() => window.allDates && allDates.length && window.lastRenderedData, null, { timeout: 240000 });
+    await until(page, () => !!(window.allDates && allDates.length && window.lastRenderedData));
     await page.waitForTimeout(800);
     const defaults = await page.evaluate(() => JSON.stringify(captureChartSettings()));
     pages[win] = { page, events, defaults, firstLoadMs: Date.now() - t0 };
