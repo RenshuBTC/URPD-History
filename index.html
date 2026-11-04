@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-WLFwMJY95lA4PS1dbj3kTbL8OoFeviTHgaNPZw0hESk=' 'sha256-aed8VLqfItw2091i0UsvFNmbxnFnJF+lElE1bAQAKSk=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-QVJ5dnSkDqunGQQme4VoPQaKC5mV3i8AMZt6XycSdwk=' 'sha256-aed8VLqfItw2091i0UsvFNmbxnFnJF+lElE1bAQAKSk=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -290,7 +290,7 @@
 <div id="explainBody"></div>
 <p id="explainFoot"><a id="privacyLink" href="privacy.html">Privacy</a> · <a id="termsLink" href="terms.html">Terms</a></p>
 </div></div>
-  <a id="githubLink" href="https://github.com/renshuBTC/URPD-History" target="_blank" rel="noopener noreferrer" aria-label="View code on GitHub (opens in a new tab)" title="View code on GitHub (opens in a new tab)">
+  <a id="githubLink" href="https://github.com/RenshuTanz/URPD-History" target="_blank" rel="noopener noreferrer" aria-label="View code on GitHub (opens in a new tab)" title="View code on GitHub (opens in a new tab)">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
   </a>
   <button id="langBtn" aria-label="中文 — Change language">中文</button>
@@ -1848,7 +1848,7 @@ function drawChart(data, plotSeq, navigationSeq) {
   // it used to be, is always drawn over the bars: at 15 % white it lightened every bar it crossed, and while you
   // scrubbed, the letters flickered across the moving bars.
   var shapes = [{type:"rect",xref:"paper",yref:"paper",x0:0,x1:1,y0:0,y1:1,layer:"below",line:{width:0},fillcolor:"rgba(0,0,0,0)",
-    label:{text:"<b>@RenshuTan</b>",textposition:"middle center",font:{family:FONT,size:50,color:TH.watermark}}}];
+    label:{text:"<b>@RenshuTanz</b>",textposition:"middle center",font:{family:FONT,size:50,color:TH.watermark}}}];
   var annotations = [
     {xref:"paper",yref:"paper",x:0,y:0,yanchor:"bottom",yshift:creditRow?-38:creditWrap?-76:-62,text:creditShown,showarrow:false,font:{size:creditSize,color:TH.credit,family:FONT},xanchor:"left",align:"left"}
   ];
