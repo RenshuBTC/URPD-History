@@ -53,7 +53,7 @@ test('the page links to no file to download, and its code starts none of its own
 });
 
 test('every address in the page is one of the few it is meant to use', () => {
-  const allowed = new Set([PLOTLY, 'https://github.com/RenshuTanz/URPD-History', 'https://bitview.space',
+  const allowed = new Set([PLOTLY, 'https://github.com/renshuBTC/URPD-History', 'https://bitview.space',
     'https://fonts.googleapis.com', 'https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap',
     'https://fonts.gstatic.com', 'http://www.w3.org/2000/svg', 'https://x.com/',
     'https://www.youtube.com/channel/UC1jY5BEQXSetr93AbZNDbwg', 'https://www.youtube.com/watch?v=']);
@@ -62,16 +62,16 @@ test('every address in the page is one of the few it is meant to use', () => {
   for (const u of found) assert.ok(allowed.has(u), 'unexpected address in index.html: ' + u);
 });
 
-test('links to the repository use the account\'s current name, never the old one anyone can now claim', () => {
-  // The GitHub account was renamed from renshuBTC to RenshuTanz. GitHub redirects the old address only until someone
-  // takes the old name and makes a repository called URPD-History there; from then on the old links lead to theirs. The
-  // YouTube channel keeps the name renshuBTC (youtube.com/@renshuBTC), which this does not touch.
+test('links to the repository use the account\'s name, renshuBTC, never RenshuTanz, which anyone can now claim', () => {
+  // In November 2026 the GitHub account was renamed RenshuTanz for an hour and then back. GitHub gives a name up for
+  // anyone to claim, and whoever takes RenshuTanz and makes a repository called URPD-History there would own every link
+  // to it. (GitHub names ignore case: renshuBTC and RenshuBTC are the same account.)
   const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
   for (const f of ['index.html', 'privacy.html', 'terms.html', 'SECURITY.md', 'README.md', 'tools/video/page.html', 'tools/video/youtube.mjs'])
-    assert.doesNotMatch(read(f), /github\.com\/renshuBTC\b|renshuBTC\/URPD-History|renshubtc\.github\.io/i, f);
-  assert.match(html, /<a id="githubLink" href="https:\/\/github\.com\/RenshuTanz\/URPD-History"/);
-  for (const f of ['privacy.html', 'terms.html']) assert.match(read(f), /<a href="https:\/\/github\.com\/RenshuTanz\/URPD-History">the source on GitHub<\/a>/, f);
-  assert.match(read('SECURITY.md'), /gh attestation verify \S+ --repo RenshuTanz\/URPD-History \\\n\s+--signer-workflow RenshuTanz\/URPD-History\/\.github\/workflows\/video\.yml /);
+    assert.doesNotMatch(read(f), /github\.com\/RenshuTanz\b|RenshuTanz\/URPD-History|renshutanz\.github\.io/i, f);
+  assert.match(html, /<a id="githubLink" href="https:\/\/github\.com\/renshuBTC\/URPD-History"/);
+  for (const f of ['privacy.html', 'terms.html']) assert.match(read(f), /<a href="https:\/\/github\.com\/renshuBTC\/URPD-History">the source on GitHub<\/a>/, f);
+  assert.match(read('SECURITY.md'), /gh attestation verify \S+ --repo renshuBTC\/URPD-History \\\n\s+--signer-workflow renshuBTC\/URPD-History\/\.github\/workflows\/video\.yml /);
 });
 
 test('whatever the API sends, the page keeps only real dates and finite amounts', () => {
