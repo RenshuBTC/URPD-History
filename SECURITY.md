@@ -18,7 +18,7 @@ page checks before using. The site has no video download, so that someone who br
 visitors a file posing as a video.
 
 The workflow keeps its latest renders on this repository's
-[`video` release](https://github.com/RenshuTanz/URPD-History/releases/tag/video)
+[`video` release](https://github.com/renshuBTC/URPD-History/releases/tag/video)
 (`BitcoinURPD.com-USD-AGE.mp4`, `BitcoinURPD.com-BTC-AGE.mp4`, `BitcoinURPD.com-USD-LTH-STH.mp4` and
 `BitcoinURPD.com-BTC-LTH-STH.mp4`), where the next run reads which day they reach; nothing
 links to them (a video drawn on its own by hand is posted but joins the release only with the next monthly run). The
@@ -31,14 +31,11 @@ Sigstore). To check a copy of any of them:
 - **Attestation**, with the [GitHub CLI](https://cli.github.com):
 
   ```sh
-  gh attestation verify BitcoinURPD.com-USD-AGE.mp4 --repo RenshuTanz/URPD-History \
-    --signer-workflow RenshuTanz/URPD-History/.github/workflows/video.yml --source-ref refs/heads/main
+  gh attestation verify BitcoinURPD.com-USD-AGE.mp4 --repo renshuBTC/URPD-History \
+    --signer-workflow renshuBTC/URPD-History/.github/workflows/video.yml --source-ref refs/heads/main
   ```
 
-  This passes only for a file built by that workflow in this repository from its `main` branch. Files built before
-  the account was renamed, in November 2026, carry its earlier name in their signature and fail it: the next monthly
-  run replaces the four BitcoinURPD.com files with newly signed ones, and the older BitcoinSupplyChart.com files can
-  no longer be checked this way.
+  This passes only for a file built by that workflow in this repository from its `main` branch.
 
 ## How the site and the video are protected
 
@@ -68,5 +65,5 @@ Sigstore). To check a copy of any of them:
 ## Reporting a problem
 
 Please don't open a public issue for a security problem. Report it privately with **Report a vulnerability** on
-this repository's [Security tab](https://github.com/RenshuTanz/URPD-History/security), or message
+this repository's [Security tab](https://github.com/renshuBTC/URPD-History/security), or message
 [@RenshuTanz](https://x.com/RenshuTanz) on X.
