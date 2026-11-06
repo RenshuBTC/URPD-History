@@ -1,5 +1,5 @@
 {
- "about": "Labelled examples for tests/evals.test.cjs: real traces of the chart, drawn by evals/collect.mjs on 2026-11-04 and found good by review, with BRK's reference values for their days and the site's data files as they were. The failures the checks must catch are made from these in the test.",
+ "about": "Labelled examples for tests/evals.test.cjs: real traces of the chart, drawn by evals/collect.mjs on 2026-11-04 (t110 and t111 again on 2026-11-06, with the mark-edges facts) and found good by review, with BRK's reference values for their days and the site's data files as they were. The failures the checks must catch are made from these in the test.",
  "inProgress": "2026-11-04",
  "refs": {
   "2011-01-31": {
@@ -1852,8 +1852,8 @@
    "facts": {
     "date": "2017-08-04",
     "spot": 2848.54,
-    "profitPctCoin": 97.450152,
-    "profitPct": 93.532611,
+    "profitPctCoin": 97.45015184713994,
+    "profitPct": 93.53261139836029,
     "coin": true,
     "split": true,
     "lang": "en",
@@ -1867,18 +1867,33 @@
      "hi": 1334.6496
     },
     "coinsInMark": true,
+    "markEdges": {
+     "pitch": 2.39,
+     "lines": [
+      {
+       "c": 447.5,
+       "w": 1,
+       "onBar": 0.01
+      },
+      {
+       "c": 674.5,
+       "w": 1,
+       "onBar": 0.01
+      }
+     ]
+    },
     "raw": {
-     "supply": 16488548.59357,
+     "supply": 16488548.59356963,
      "value": 18595688564.79812,
      "maxPrice": 2958,
      "bands": 23,
-     "sth": 6234489.286121,
-     "lth": 10254059.307449
+     "sth": 6234489.286120983,
+     "lth": 10254059.307448654
     },
     "title": "Bitcoin URPD (% BTC, LTH/STH) as of 04 Aug 2017",
-    "counter": "3131/6510",
+    "counter": "3131/6512",
     "dayNumber": 3131,
-    "days": 6510,
+    "days": 6512,
     "notice": "",
     "loading": false,
     "xRange": [
@@ -1887,18 +1902,18 @@
     ],
     "yRange": [
      0,
-     1.972468
+     1.9724682882905804
     ],
     "bars": [
      {
       "name": "Short-Term Holders (STH)",
-      "sum": 37.811025,
+      "sum": 37.81102533519761,
       "positive": 439,
       "visible": true
      },
      {
       "name": "Long-Term Holders (LTH)",
-      "sum": 62.188975,
+      "sum": 62.18897466480238,
       "positive": 276,
       "visible": true
      }
@@ -1950,18 +1965,18 @@
       ]
      },
      {
-      "text": "Price: $885 – $1,335 | All LTH Within: 54 Days | (by 27 Sept 2017)",
+      "text": "Price: $885 – $1,335 | All LTH Within: …",
       "xref": "x",
       "yref": "paper",
-      "x": 885.0336,
+      "x": 884.0731385847798,
       "y": 1,
-      "width": 209.332268,
+      "width": 209.33226837060698,
       "color": true,
       "box": [
        524.5,
        102.5,
        744.5,
-       164.5
+       147.5
       ]
      }
     ],
@@ -2025,22 +2040,37 @@
      "ymax": 99.8
     },
     "mark": {
-     "lo": 0.0496,
+     "lo": 0.049600000000000005,
      "hi": 0.1216
     },
     "coinsInMark": false,
+    "markEdges": {
+     "pitch": 2.41,
+     "lines": [
+      {
+       "c": 74.5,
+       "w": 1,
+       "onBar": 0
+      },
+      {
+       "c": 183.5,
+       "w": 1,
+       "onBar": 0
+      }
+     ]
+    },
     "raw": {
      "supply": 2817750,
      "value": 0,
      "maxPrice": 0,
      "bands": 23,
-     "sth": 1384751.13,
+     "sth": 1384751.1300000001,
      "lth": 1432998.87
     },
     "title": "Bitcoin URPD (% BTC, AGE) as of 18 May 2010",
-    "counter": "496/6510",
+    "counter": "496/6512",
     "dayNumber": 496,
-    "days": 6510,
+    "days": 6512,
     "notice": "",
     "loading": false,
     "xRange": [
@@ -2054,73 +2084,73 @@
     "bars": [
      {
       "name": "<1h",
-      "sum": 0.012421,
+      "sum": 0.01242125809599858,
       "positive": 1,
       "visible": true
      },
      {
       "name": "1h-1d",
-      "sum": 0.539934,
+      "sum": 0.5399343447786354,
       "positive": 1,
       "visible": true
      },
      {
       "name": "1d-1w",
-      "sum": 2.585489,
+      "sum": 2.5854887765060774,
       "positive": 1,
       "visible": true
      },
      {
       "name": "1w-1m",
-      "sum": 9.941251,
+      "sum": 9.941250643243723,
       "positive": 1,
       "visible": true
      },
      {
       "name": "1m-2m",
-      "sum": 10.110216,
+      "sum": 10.110216307337414,
       "positive": 1,
       "visible": true
      },
      {
       "name": "2m-3m",
-      "sum": 8.674578,
+      "sum": 8.674577943394553,
       "positive": 1,
       "visible": true
      },
      {
       "name": "3m-4m",
-      "sum": 9.647735,
+      "sum": 9.647734539969832,
       "positive": 1,
       "visible": true
      },
      {
       "name": "4m-5m",
-      "sum": 7.632237,
+      "sum": 7.632236713690001,
       "positive": 1,
       "visible": true
      },
      {
       "name": "5m-6m",
-      "sum": 4.026222,
+      "sum": 4.0262219856268295,
       "positive": 1,
       "visible": true
      },
      {
       "name": "6m-9m",
-      "sum": 9.78616,
+      "sum": 9.786160234229438,
       "positive": 1,
       "visible": true
      },
      {
       "name": "9m-1y",
-      "sum": 10.82247,
+      "sum": 10.822469701002573,
       "positive": 1,
       "visible": true
      },
      {
       "name": "1y-18m",
-      "sum": 26.221288,
+      "sum": 26.22128755212492,
       "positive": 1,
       "visible": true
      },
@@ -2226,14 +2256,14 @@
       "text": "Price: | $0.05 – | $0.12 | No BTC | Last Moved | Here",
       "xref": "x",
       "yref": "paper",
-      "x": 0.0496,
+      "x": 0.049052547981469234,
       "y": 1,
-      "width": 90.618211,
+      "width": 90.61821086261979,
       "color": false,
       "box": [
-       139.5,
+       138.5,
        121.5,
-       241.5,
+       240.5,
        234.5
       ]
      }

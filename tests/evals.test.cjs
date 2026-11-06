@@ -19,6 +19,7 @@ const withPrice = (t) => t.facts.spot > 0 && t.facts.date !== fixture.inProgress
 const FAILURES = [
   ['draws', '#191: the API changed and no day loaded', () => { const t = good(withPrice); t.facts.notice = 'Could not reach bitview.space. Check your connection and try again.'; return t; }],
   ['draws', 'a script error while drawing', () => { const t = good(withPrice); t.events = ['page error: TypeError: Cannot read properties of undefined']; return t; }],
+  ['draws', 'a data request that failed', () => { const t = good(withPrice); t.events = ['request failed: https://bitview.space/api/urpd/all/2017-08-04 net::ERR_CONNECTION_RESET']; return t; }],
   ['draws', 'a day that never drew', () => { const t = good(withPrice); delete t.facts; t.error = 'Timeout 240000ms exceeded'; return t; }],
   ['right-day', '#6: the price two days behind', () => { const t = good(withPrice); t.facts.spot = t.facts.spot * 1.03; return t; }],
   ['right-day', '#4: a one-day shift in the title', () => { const t = good(withPrice); t.facts.title = t.facts.title.replace(/\d\d (\w+ \d{4})$/, (m, rest) => String(Number(m.slice(0, 2)) % 28 + 1).padStart(2, '0') + ' ' + rest); return t; }],
@@ -38,6 +39,8 @@ const FAILURES = [
   ['mark-box', 't116: 0 Days where no coin last moved', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === false && x.lang === 'en'); markText(t, '0 Days'); return t; }],
   ['mark-box', 'No BTC where coins last moved', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === true && x.lang === 'en'); markText(t, 'Price: $885 – $1,335 | No BTC Last Moved Here'); return t; }],
   ['mark-box', '#192: the share lines the owner had removed', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === true && x.lang === 'en'); markText(t, 'Price: $885 – $1,335 | USD Value Last Moved Here: 19.1% | All LTH Within: 54 Days'); return t; }],
+  ['mark-edges', 'the owner\'s drag: a white line over a bar', () => { const t = good((x) => x.facts && x.facts.markEdges && x.facts.markEdges.pitch >= 2); t.facts.markEdges.lines[0].onBar = 1.79; return t; }],
+  ['mark-edges', 'a line missing', () => { const t = good((x) => x.facts && x.facts.markEdges && x.facts.markEdges.pitch >= 2); t.facts.markEdges.lines.pop(); return t; }],
   ['empty-note', 'error analysis: a blank day before the first close, unexplained', () => { const t = good((x) => x.facts && emptyNote(x)); t.facts.annotations = t.facts.annotations.filter((a) => !(a.x === 0.5 && a.y === 0.62)); return t; }],
   ['empty-note', 'the note on a day with bars', () => { const t = good(withPrice); t.facts.annotations.push({ text: 'No USD value yet | Every coin last moved before the first BTC/USD close (16 Aug 2010).', xref: 'paper', yref: 'paper', x: 0.5, y: 0.62, box: null }); return t; }],
 ];
@@ -85,6 +88,15 @@ test('every check fails each failure made for it (true positive rate 1)', async 
     const s = copy(fixture.site); change(s);
     assert.equal(siteById[id].judge(s)[0], false, `${id} catches "${what}"`);
   }
+});
+
+test('a request the page called off itself is not the day failing to draw', async () => {
+  // The page calls a request off after 15 s without an answer; for a nearby day it was fetching ahead, the day on screen
+  // still drew (a good trace of 6 Nov 2026 failed on this). For the day on screen the page shows a notice instead.
+  const { TRACE_CHECKS } = await load();
+  const draws = TRACE_CHECKS.find((c) => c.id === 'draws'), t = good(withPrice);
+  t.events = ['request failed: https://bitview.space/api/urpd/age_2y_to_3y/2017-08-02 net::ERR_ABORTED'];
+  assert.equal(draws.judge(t, ctx)[0], true);
 });
 
 test('a run passes a trace only when it passes every check that applies, and counts each check', async () => {

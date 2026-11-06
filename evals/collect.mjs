@@ -40,12 +40,29 @@ function pageFacts() {
     coinsInMark = false;
     for (const c of raw.age || []) for (const k in c || {}) if (c[k] > 0 && Number(k) >= rangeMark.lo && Number(k) < rangeMark.hi) coinsInMark = true;
   }
+  // A marked range's white lines against the bars as drawn: each line's pixel column, in px from the plot's left edge,
+  // and how much of it the bars cover (none for a line in the gap between two bars). Read off the SVG Plotly drew, not
+  // worked out the page's way.
+  let markEdges = null;
+  if (window.rangeMark && gd._fullLayout && gd._fullLayout.xaxis) {
+    const xa = gd._fullLayout.xaxis, spans = [];
+    for (const p of gd.querySelectorAll(".barlayer .point path")) {
+      const m = /^M([\d.]+),([\d.]+)V([\d.]+)H([\d.]+)V/.exec(p.getAttribute("d") || "");
+      if (m && +m[2] !== +m[3]) spans.push([+m[1], +m[4]]);
+    }
+    const r2 = (v) => Math.round(v * 100) / 100;
+    markEdges = { pitch: r2(xa._length * d.binWidth / (xa.range[1] - xa.range[0])),
+      lines: (L.shapes || []).filter((s) => s.type === "line" && s.xref === "x" && s.line && s.line.color === MARK_EDGE).map((s) => {
+        const c = xa.l2p(s.x0), w = s.line.width || 1;
+        return { c: r2(c), w, onBar: r2(spans.reduce((t, [x0, x1]) => t + Math.max(0, Math.min(x1, c + w / 2) - Math.max(x0, c - w / 2)), 0)) };
+      }) };
+  }
   const ctl = document.getElementById("controls"), status = document.getElementById("status");
   // The toolbar's items, and how many sit below the first row (none when it is one row).
   const items = [...ctl.children].map((e) => box(e)).filter(Boolean), firstRowBottom = Math.min(...items.map((b) => b[3]));
   return {
     date: d.dateStr, spot: d.spot, profitPctCoin: d.profitPctCoin, profitPct: d.profitPct, coin: coinMode, split: splitMode, lang,
-    settings: { bins: NUM_BINS, smoothing: KERNEL_PCT, ymax: yMaxPct }, mark: window.rangeMark ? { lo: rangeMark.lo, hi: rangeMark.hi } : null, coinsInMark,
+    settings: { bins: NUM_BINS, smoothing: KERNEL_PCT, ymax: yMaxPct }, mark: window.rangeMark ? { lo: rangeMark.lo, hi: rangeMark.hi } : null, coinsInMark, markEdges,
     raw: { ...sum(raw.all), bands: ages.length, sth: ages.slice(0, STH_BANDS).reduce((a, b) => a + b.supply, 0), lth: ages.slice(STH_BANDS).reduce((a, b) => a + b.supply, 0) },
     title: strip(L.title && L.title.text), counter: document.getElementById("dateDisplay").textContent, dayNumber: allDates.indexOf(d.dateStr) + 1, days: allDates.length,
     notice: status && status.offsetParent && status.textContent.trim() ? status.textContent.trim() : "",
