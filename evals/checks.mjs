@@ -40,7 +40,10 @@ export const TRACE_CHECKS = [
       const f = t.facts;
       if (f.notice) return [false, "notice: " + f.notice.slice(0, 120)];
       if (f.loading) return [false, "the loading sign is still up"];
-      const bad = (t.events || []).find((e) => !/youtube|google|fonts\./.test(e));
+      // A request the page called off itself after 15 s without an answer (fetchJSON) is net::ERR_ABORTED here. For the
+      // day on screen the notice above then says so; for a nearby day it was fetching ahead, the day shown still drew.
+      // (6 Nov 2026: a prefetch called off that way turned a good trace red.)
+      const bad = (t.events || []).find((e) => !/youtube|google|fonts\./.test(e) && !/^request failed: .* net::ERR_ABORTED$/.test(e));
       if (bad) return [false, bad.slice(0, 160)];
       return [true];
     },
@@ -166,6 +169,20 @@ export const TRACE_CHECKS = [
       if (f.coinsInMark === true && saysNone) return [false, "coins last moved in the range, the box says none: " + box.text.slice(0, 80)];
       if (f.coinsInMark === true && !saysLth && !/…$/.test(box.text)) return [false, "no days line: " + box.text.slice(0, 80)];
       return [true];
+    },
+  },
+  {
+    id: "mark-edges",
+    failure: "A marked range's white line is drawn over a bar instead of in the gap beside it, so the mark seems to cut a bar and a drag slides instead of moving a bar at a time.",
+    seen: "6 Nov 2026: the owner asked for the drag to go a bar at a time; in Chromium a line covered part of a bar at 36 of 36 drag steps (up to 1.8 px), fixed in #196",
+    // Where the chart leaves a gap between bars (2 px apart or more); narrower bars are solid and the line takes the
+    // separator's pixel, by design.
+    applies: (t) => !t.error && !!t.facts && !!t.facts.markEdges && t.facts.markEdges.pitch >= 2,
+    judge(t) {
+      const e = t.facts.markEdges;
+      if (e.lines.length !== 2) return [false, e.lines.length + " white lines, not 2"];
+      const over = e.lines.find((l) => l.onBar > 0.05);
+      return over ? [false, "a white line over a bar: " + over.onBar + " px of it covered, at " + over.c + " px"] : [true];
     },
   },
   {
