@@ -9,8 +9,8 @@ bars. It is a cost-basis distribution of the whole bitcoin supply: a tall bar is
 moved, a gap is a price where almost none did, and the price box gives the share of the day's value (or coins) in
 profit and in loss at the day's price. Data from Bitcoin Research Kit.
 
-- **Scrub through history:** drag the orange dot along the price line, or use **← / →** (step size **1D / 1W / 1M /
-  1Y**, keys **1** to **4**); see [Controls](#controls).
+- **Scrub through history:** drag the orange dot along the price line, or use **← / →** (step size **1B / 1D / 1W /
+  1M / 1Y**, keys **1** to **5**; **1B** steps one block at a time); see [Controls](#controls).
 - **Full-history videos:** four 5-minute 4K videos on YouTube, one for each weighting and colouring (% USD or % BTC,
   LTH/STH or AGE), in the toolbar's **FULL HISTORY VIDEOS** menu; see [How it works](#how-it-works).
 - **Explainer** in English, Chinese and Japanese: **?** in the toolbar.
@@ -35,12 +35,19 @@ Mouse: drag the orange dot along the white price line to any day.
 
 Keyboard:
 
-- **A / D** or **← / →** — previous / next date
-- **1 / 2 / 3 / 4** — step interval: 1D / 1W / 1M / 1Y
-- **W / S** or **↑ / ↓** — step interval up / down, one size at a time (1D → 1W → 1M → 1Y, and round again)
+- **A / D** or **← / →** — previous / next step
+- **1 / 2 / 3 / 4 / 5** — step interval: 1B / 1D / 1W / 1M / 1Y, in the toolbar's order (1D to start with)
+- **W / S** or **↑ / ↓** — step interval up / down, one size at a time (1B → 1D → 1W → 1M → 1Y, and round again)
 - **Home / End** — first / last date
 
 % USD / % BTC and LTH/STH / AGE are switched with their toolbar buttons.
+
+A day is drawn as it stood at its last block. **1B** steps one block at a time instead, about ten minutes: from a day,
+to the block before its last or to the first block of the next day. The box between the arrows then gives the block's
+height, the title its height and time (UTC), the dashed line is bitcoin's price at that block, and the orange dot sits
+as far into its day as the block is. The price axis is the one the day before ended on, grown by the block's own data,
+and never past its own day's end, so a day's last block is drawn exactly as the day. From a block, 1D steps forward to
+the end of its day and back to the end of the day before. Past the newest block, the page says there is none yet.
 
 Toolbar, left to right:
 
@@ -69,9 +76,12 @@ One HTML file, no build step, no dependencies to install. Charts render with
 [Plotly.js](https://plotly.com/javascript/) from a CDN with an SRI hash. Data is
 fetched per day from the Bitcoin Research Kit API mirrored at
 [bitview.space](https://bitview.space), one URPD request per age cohort
-(`/api/urpd/<cohort>/<date>`, the cohorts `age_under_1h` to `age_over_15y`). The days it has (every UTC day with a
-block) come from its day1 series, `/api/series/date/day1` and `/api/series/first_height/day1`. Loaded days are cached
-in memory, so scrubbing backwards is instant.
+(`/api/urpd/<cohort>/<date>`, the cohorts `age_under_1h` to `age_over_15y`), or per block with **1B**
+(`/api/urpd/<cohort>/<height>`, with the block's time from `/api/series/timestamp/height`). The days it has (every UTC
+day with a block) and the first block of each come from its day1 series, `/api/series/date/day1` and
+`/api/series/first_height/day1`. A day's 23 bands must all be of one block: if the day in progress gains a block while
+they load, the ones from the block before are asked for again at the new one. Loaded days and blocks are cached in
+memory, so scrubbing backwards is instant.
 
 **FULL HISTORY VIDEOS** in the toolbar opens a menu of four, **VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**,
 **VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)**, each of which opens the whole history as one video on YouTube,

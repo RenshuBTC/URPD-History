@@ -40,18 +40,18 @@ test('1W, 1M and 1Y are calendar steps, and never skip a listed day or stall on 
   const dates = ['2009-01-03', '2009-01-09', '2009-01-10', '2009-01-11'].concat(days('2009-01-12', '2011-03-31'));
   const h = navApp(dates), { c } = h;
   const at = d => dates.indexOf(d), step = (from, dir) => dates[Math.max(0, Math.min(dates.length - 1, c.stepTarget(at(from), dir)))];
-  c.setInterval1(2);   // 1M
+  c.setInterval1(3);   // 1M
   assert.equal(step('2010-01-31', 1), '2010-02-28', 'February is not skipped');
   assert.equal(step('2010-03-31', -1), '2010-02-28');
   assert.equal(step('2010-02-28', 1), '2010-03-28');
-  c.setInterval1(3);   // 1Y
+  c.setInterval1(4);   // 1Y
   assert.equal(step('2009-01-03', 1), '2010-01-03', 'a year from the first day, across the gap in early 2009');
   assert.equal(step('2010-06-15', -1), '2009-06-15');
   assert.equal(step('2009-01-09', -1), '2009-01-03', 'before the history starts: its first day');
-  c.setInterval1(1);   // 1W
+  c.setInterval1(2);   // 1W
   assert.equal(step('2009-01-03', 1), '2009-01-10', 'the first listed day on or after a week on');
   assert.equal(step('2009-01-12', -1), '2009-01-03', 'the last listed day on or before a week back');
-  c.setInterval1(0);   // 1D: the next listed day
+  c.setInterval1(1);   // 1D: the next listed day
   assert.equal(step('2009-01-03', 1), '2009-01-09');
 });
 
@@ -60,7 +60,7 @@ test('prefetch fetches the next steps of the selected size, not the neighbouring
   const h = navApp(dates), { c } = h, fetched = [];
   vm.runInContext(section('var PREFETCH_AHEAD = 2;', 'function loadAndRender('), c);
   c.fetchRaw = d => { fetched.push(d); return Promise.resolve({}); };
-  c.setInterval1(3);
+  c.setInterval1(4);   // 1Y
   c.currentIdx = dates.indexOf('2026-09-20');
   c.prefetchPrev = dates.indexOf('2026-09-20') + 1;   // walking back
   c.schedulePrefetch();
@@ -83,15 +83,15 @@ test('Up and Down, or W and S, change the step size one at a time, round and rou
   const press = (key, extra = {}) => { let prevented = false; docListeners.keydown[0]({ key, target: { tagName: 'BODY' }, preventDefault() { prevented = true; }, ...extra }); return prevented; };
   const up = [], down = [];
   for (const k of ['ArrowUp', 'w', 'W', 'ArrowUp']) { assert.ok(press(k), k); up.push(c.stepIdx); }
-  assert.deepEqual(up, [1, 2, 3, 0], '1W, 1M, 1Y, then 1D again');
+  assert.deepEqual(up, [2, 3, 4, 0], 'from 1D: 1W, 1M, 1Y, then round to 1B');
   for (const k of ['ArrowDown', 's', 'S', 'ArrowDown']) { assert.ok(press(k), k); down.push(c.stepIdx); }
-  assert.deepEqual(down, [3, 2, 1, 0], '1Y, 1M, 1W, 1D');
+  assert.deepEqual(down, [4, 3, 2, 1], 'from 1B: round to 1Y, then 1M, 1W, 1D');
   assert.equal(c.coinMode, false, 'USD/BTC is left to its buttons');
   assert.equal(c.viewIdx, 0);
   assert.equal(c.yMaxPct, 100, 'and the Y-max to its field (100 in USD)');
   // The browser keeps its own shortcuts (Ctrl+S saves the page).
   assert.equal(press('s', { ctrlKey: true }), false);
-  assert.equal(c.stepIdx, 0);
+  assert.equal(c.stepIdx, 1);
 });
 
 test('the settings fields take a number and nothing else', () => {
@@ -307,7 +307,7 @@ test('the videos menu opens and shuts from its button; while it is open its keys
   assert.ok(press('Escape'));
   assert.deepEqual([c.ytMenuIsOpen(), btn.getAttribute('aria-expanded'), focused], [false, 'false', 'ytMenuBtn']);
   assert.ok(press('ArrowUp'));
-  assert.equal(c.stepIdx, (before[0] + 1) % 4);
+  assert.equal(c.stepIdx, (before[0] + 1) % 5);
 });
 
 test('data/youtube.json names each video by its YouTube id, or none yet', () => {
