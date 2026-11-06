@@ -20,8 +20,6 @@ const MARK = {
   zh: { none: ["没有最后在此移动的BTC", "无BTC"], lth: ["全部成为长期持有者:", "已全部为长期持有者", "天内"] },
   ja: { none: ["ここで最後に動いたBTCはありません", "BTCなし"], lth: ["すべて長期保有者になるまで:", "すでにすべて長期保有者", "日以内"] },
 };
-// Words the box no longer prints (the share of the day and its split, removed on the owner's request).
-const REMOVED_SHARE_LINES = /(USD Value|BTC Supply) Last Moved Here|最后在此移动的(美元价值|BTC 供应)|ここで最後に動いた (USD 評価額|BTC 供給量)/;
 
 const markBox = (f) => f.annotations.find((a) => a.xref === "x" && a.width);
 const emptyNote = (f) => f.annotations.find((a) => a.xref === "paper" && a.yref === "paper" && a.x === 0.5 && a.y === 0.62);
@@ -157,13 +155,14 @@ export const TRACE_CHECKS = [
   },
   {
     id: "mark-box",
-    failure: "A marked range's box says something untrue: long-term holders (or 0 days) where no coin last moved, no coins where some did, or the share lines the owner had removed.",
-    seen: "error analysis: t111 said Already All Long-Term Holders and t116 said 0 Days over ranges holding no coin; #192",
+    failure: "A marked range's box says something untrue: long-term holders (or 0 days) where no coin last moved, or no coins where some did.",
+    // (Its share lines, removed in #192 and checked for here until the owner asked for them back on 6 Nov 2026, are
+    // shown again.)
+    seen: "error analysis: t111 said Already All Long-Term Holders and t116 said 0 Days over ranges holding no coin",
     applies: (t) => !t.error && !!t.facts && !!t.facts.mark,
     judge(t) {
       const f = t.facts, box = markBox(f), words = MARK[f.lang] || MARK.en;
       if (!box) return [true];   // too narrow for any words: no box, which says nothing untrue
-      if (REMOVED_SHARE_LINES.test(box.text)) return [false, "a removed share line: " + box.text.slice(0, 80)];
       const text = flat(box.text), saysNone = words.none.some((w) => text.endsWith(w)), saysLth = words.lth.some((w) => text.includes(w));
       if (f.coinsInMark === false && !saysNone) return [false, "no coin last moved in the range, the box says: " + box.text.slice(0, 80)];
       if (f.coinsInMark === true && saysNone) return [false, "coins last moved in the range, the box says none: " + box.text.slice(0, 80)];

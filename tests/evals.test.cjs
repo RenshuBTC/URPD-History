@@ -38,7 +38,6 @@ const FAILURES = [
   ['mark-box', 't111: Already All Long-Term Holders where no coin last moved', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === false && x.lang === 'en'); markText(t, 'Price: $0.05 – $0.12 | Already All Long-Term Holders'); return t; }],
   ['mark-box', 't116: 0 Days where no coin last moved', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === false && x.lang === 'en'); markText(t, '0 Days'); return t; }],
   ['mark-box', 'No BTC where coins last moved', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === true && x.lang === 'en'); markText(t, 'Price: $885 – $1,335 | No BTC Last Moved Here'); return t; }],
-  ['mark-box', '#192: the share lines the owner had removed', () => { const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === true && x.lang === 'en'); markText(t, 'Price: $885 – $1,335 | USD Value Last Moved Here: 19.1% | All LTH Within: 54 Days'); return t; }],
   ['mark-edges', 'the owner\'s drag: a white line over a bar', () => { const t = good((x) => x.facts && x.facts.markEdges && x.facts.markEdges.pitch >= 2); t.facts.markEdges.lines[0].onBar = 1.79; return t; }],
   ['mark-edges', 'a line missing', () => { const t = good((x) => x.facts && x.facts.markEdges && x.facts.markEdges.pitch >= 2); t.facts.markEdges.lines.pop(); return t; }],
   ['empty-note', 'error analysis: a blank day before the first close, unexplained', () => { const t = good((x) => x.facts && emptyNote(x)); t.facts.annotations = t.facts.annotations.filter((a) => !(a.x === 0.5 && a.y === 0.62)); return t; }],
@@ -88,6 +87,15 @@ test('every check fails each failure made for it (true positive rate 1)', async 
     const s = copy(fixture.site); change(s);
     assert.equal(siteById[id].judge(s)[0], false, `${id} catches "${what}"`);
   }
+});
+
+test('a marked range\'s box with its share lines back passes', async () => {
+  // Removed in #192 and brought back on the owner's request (6 Nov 2026): the share of the day, its split, the days.
+  const { TRACE_CHECKS } = await load();
+  const markCheck = TRACE_CHECKS.find((c) => c.id === 'mark-box');
+  const t = good((x) => x.facts && x.facts.mark && x.facts.coinsInMark === true && x.lang === 'en');
+  markText(t, 'Price: $885 – $1,335 | BTC Supply Last Moved Here: 19.1% | LTH BTC Supply Last Moved Here: 12.0% | STH BTC Supply Last Moved Here: 7.1% | All LTH Within: 54 Days (by 28 Sept 2017)');
+  assert.deepEqual(markCheck.judge(t, ctx), [true]);
 });
 
 test('a request the page called off itself is not the day failing to draw', async () => {
