@@ -30,7 +30,7 @@ failures are recorded.
 
 | Failure | In the 117 traces | Seen before | Check | Now |
 |---|---|---|---|---|
-| A marked range's box says something untrue: "Already All Long-Term Holders" (t111) or "0 Days" (t116) over a range where no coin last moved | 2 of 8 marked ranges | #173–#177, #192 | `mark-box` | fixed: it says "No BTC Last Moved Here" |
+| A marked range's box says something untrue: "Already All Long-Term Holders" (t111) or "0 Days" (t116) over a range where no coin last moved | 2 of 8 marked ranges | #173–#177 | `mark-box` | fixed: it says "No BTC Last Moved Here" |
 | A marked range's white line is drawn over a bar, not in the gap beside it, so the mark seems to cut bars and a drag slides instead of moving a bar at a time | found after: the owner asked for the drag to go a bar at a time, and in Chromium a line covered part of a bar at 36 of 36 drag steps | — | `mark-edges` | fixed in #196 |
 | A day with nothing to draw is a blank plot with no word why: the genesis day, and every day before the first BTC/USD close (16 Aug 2010), when every coin is at $0 | 14 | — | `empty-note` | fixed: a note in the plot says why |
 | The day does not draw at all | 0 | #191: BRK changed its API and no day loaded; the owner found it, no check did | `draws` | checked daily |
@@ -72,7 +72,7 @@ and each check's own count.
 | `bars-total` | the bars drawn add up to anything but 100 % of the day |
 | `labels-clear` | two boxes of words overlap, or one sits on the legend or title or leaves the window |
 | `fits-window` | the page is wider than the window, or the toolbar wraps or scrolls |
-| `mark-box` | a marked range's box claims long-term holders where no coin last moved, no coins where some did, or prints the share lines removed in #192 |
+| `mark-box` | a marked range's box claims long-term holders where no coin last moved, or no coins where some did |
 | `mark-edges` | a marked range's white line covers part of a bar, where bars are 2 px or more apart and the chart leaves a gap between them |
 | `empty-note` | a day with nothing to draw has no note saying why, or a day with bars has one |
 | `video-links` | a video menu link is not one of the four latest videos, or they end over 45 days ago |
