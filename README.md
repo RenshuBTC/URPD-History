@@ -44,10 +44,10 @@ Keyboard:
 
 A day is drawn as it stood at its last block. **1B** steps one block at a time instead, about ten minutes: from a day,
 to the block before its last or to the first block of the next day. The box between the arrows then gives the block's
-height, the title its height and time (UTC), the dashed line is bitcoin's price at that block, and the orange dot sits
+height, the title its height and time in your own time zone, the dashed line is bitcoin's price at that block, and the orange dot sits
 as far into its day as the block is. The price axis is the one the day before ended on, grown by the block's own data,
 and never past its own day's end, so a day's last block is drawn exactly as the day. From a block, 1D steps forward to
-the end of its day and back to the end of the day before. Past the newest block, the page says there is none yet.
+the end of its day and back to the end of the day before. Past the newest block, a step forward asks the API for its newest and does nothing until there is a newer one.
 
 Toolbar, left to right:
 

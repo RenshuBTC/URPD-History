@@ -13,6 +13,12 @@ const dayOf = h => FIRST.filter(f => f <= h).length - 1;
 const price = h => 75000 + (h - 974600);
 const blockTime = h => DAY_T(DAYS[dayOf(h)]) + 60 + (h - FIRST[dayOf(h)]) * 600;
 const iso = s => new Date(s * 1000).toISOString().slice(0, 19).replace('T', ' ');
+// A block's time as the title gives it: the viewer's date and time, and their time zone as the browser names it.
+function localTime(s, locale) {
+  const d = new Date(s * 1000), zone = new Intl.DateTimeFormat(locale, { timeZoneName: 'short' }).formatToParts(d).find(p => p.type === 'timeZoneName').value;
+  return d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+    String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + zone;
+}
 
 // One age band's URPD as the API sends it, at one block.
 function answer(cohort, height, amounts) {
@@ -34,6 +40,7 @@ function chain(options = {}) {
   c.fetchJSON = url => {
     urls.push(url);
     if (options.answerFor) { const r = options.answerFor(url, state); if (r !== undefined) return r; }
+    if (url === 'https://bitview.space/api/blocks/tip/height') return Promise.resolve(state.tip);
     let m = url.match(/\/api\/series\/timestamp\/height\?start=(\d+)&end=(\d+)$/);
     if (m) return Promise.resolve({ data: [blockTime(+m[1])] });
     m = url.match(/\/api\/urpd\/(\w+)\/([\w-]+)$/);
@@ -60,7 +67,7 @@ test('the step sizes are 1B, 1D, 1W, 1M and 1Y in that order, 1D to start with, 
   assert.equal(c.STEP_SIZES, 5);
   const press = key => docListeners.keydown[0]({ key, target: { tagName: 'BODY' }, preventDefault() {} });
   ['1', '2', '3', '4', '5'].forEach((k, i) => { press(k); assert.equal(c.stepIdx, i, k); });
-  for (const l of ['en', 'zh', 'ja']) for (const k of ['stepB', 'stepD', 'stepW', 'stepM', 'stepY', 'blockWord', 'errNoBlock']) assert.ok(c.T[l][k], l + '.' + k);
+  for (const l of ['en', 'zh', 'ja']) for (const k of ['stepB', 'stepD', 'stepW', 'stepM', 'stepY', 'blockWord']) assert.ok(c.T[l][k], l + '.' + k);
 });
 
 test('1B steps one block from the day shown, asking each age band for that block by height, and draws it as that block', async () => {
@@ -79,9 +86,7 @@ test('1B steps one block from the day shown, asking each age band for that block
   assert.deepEqual([d.key, d.isBlock, d.height, d.dateStr, d.spot, d.time], ['h974731', true, 974731, '2026-11-05', price(974731), blockTime(974731)]);
   assert.deepEqual([c.viewHeight, c.currentIdx], [974731, 1], 'on its day');
   assert.equal(element('dateDisplay').textContent, '#974,731');
-  const when = new Date(blockTime(974731) * 1000);
-  const hhmm = String(when.getUTCHours()).padStart(2, '0') + ':' + String(when.getUTCMinutes()).padStart(2, '0');
-  assert.match(element('chart').layout.title.text, new RegExp('as of Block 974,731 \\(05 Nov 2026 ' + hhmm + ' UTC\\)'));
+  assert.ok(element('chart').layout.title.text.includes('as of Block 974,731 (' + localTime(blockTime(974731), 'en-GB') + ')'), 'its time where the viewer is');
   // The dashed line is the block's own price, and the dot sits as far into the day as the block is: between the day
   // before's point on the line and its own day's.
   const dot = element('chart').data.find(tr => tr.marker && tr.marker.color === '#ff8c00');
@@ -141,20 +146,26 @@ test('a block answer must name its block and a day', () => {
   for (const bad of [1793936160.5, '1793936160', 0, -1, 5e9, NaN]) assert.equal(c.isBlockTime(bad), false, String(bad));
 });
 
-test('past the newest block 1B says there is none yet, not an error, and stays on the newest', async () => {
-  const h = chain(), { c, element } = h;
+test('past the newest block a step asks only for the newest block and says nothing, and reaches the next one once it is published', async () => {
+  const h = chain(), { c, element, urls } = h;
   c.currentIdx = 2;
   await c.loadAndRender(); await h.settle();
   assert.deepEqual([c.lastRenderedData.key, c.lastRenderedData.height, c.newestHeight], ['2026-11-06', 974783, 974783], 'the newest block seen');
   c.setInterval1(0);
+  urls.length = 0;
   await h.stepTo(1);
-  assert.equal(element('status').textContent, 'No newer block yet: this is the latest.');
-  assert.deepEqual([c.lastRenderedData.key, c.viewHeight, c.currentIdx], ['2026-11-06', null, 2]);
+  assert.deepEqual(urls, ['https://bitview.space/api/blocks/tip/height'], 'one small request, not 23 for a block that is not there');
+  assert.equal(element('status').textContent, '', 'no message');
+  assert.deepEqual([c.lastRenderedData.key, c.viewHeight, c.currentIdx], ['2026-11-06', null, 2], 'and the chart stays where it was');
   // Once the block is published, the same step reaches it.
   h.state.tip = 974784;
   await h.stepTo(1);
-  assert.deepEqual([c.lastRenderedData.key, c.lastRenderedData.dateStr], ['h974784', '2026-11-06']);
-  assert.equal(element('status').textContent, '', 'and the message goes once the chart moves on');
+  assert.deepEqual([c.lastRenderedData.key, c.lastRenderedData.dateStr, c.newestHeight], ['h974784', '2026-11-06', 974784]);
+  // Without a newest block known, the block is asked for, and its 404 is met with silence too.
+  c.newestHeight = null; urls.length = 0;
+  await h.stepTo(1);
+  assert.equal(urls.filter(u => /\/api\/urpd\/age_\w+\/974785$/.test(u)).length, 23);
+  assert.deepEqual([element('status').textContent, c.lastRenderedData.key, c.viewHeight], ['', 'h974784', 974784]);
 });
 
 test('the day in progress is drawn from one block, even when a block comes in while its age bands are fetched', async () => {
@@ -227,4 +238,24 @@ test('the day list knows the first block of each listed day, and which day a blo
   assert.deepEqual([...c.dayFirstHeight], [0, 1]);
   assert.deepEqual([c.heightDayIdx(0), c.heightDayIdx(1), c.heightDayIdx(99), c.heightDayIdx(-1)], [0, 1, 1, -1]);
   assert.deepEqual([c.dayLastHeight(0), c.dayLastHeight(1)], [0, null], 'the day in progress has no last block yet');
+});
+
+test("a block's time is given where the viewer is: their own date, time and time zone", () => {
+  const { c } = app();
+  const was = process.env.TZ, t = 1793955297;   // 2026-11-06 08:54:57 UTC
+  const title = (tz, lang) => { process.env.TZ = tz; c.lang = lang; return c.blockTitle({ height: 974784, time: t }, ''); };
+  try {
+    assert.equal(title('Asia/Singapore', 'en'), 'Block 974,784 (06 Nov 2026 16:54 GMT+8)');
+    assert.equal(title('America/New_York', 'en'), 'Block 974,784 (06 Nov 2026 03:54 GMT-5)');
+    assert.equal(title('Europe/London', 'en'), 'Block 974,784 (06 Nov 2026 08:54 GMT)');
+    assert.equal(title('Pacific/Auckland', 'en'), 'Block 974,784 (06 Nov 2026 21:54 GMT+13)');
+    assert.equal(title('America/Los_Angeles', 'en'), 'Block 974,784 (06 Nov 2026 00:54 GMT-8)');
+    assert.equal(title('Pacific/Honolulu', 'en'), 'Block 974,784 (05 Nov 2026 22:54 GMT-10)', 'the viewer\'s own date, too');
+    assert.equal(title('Asia/Singapore', 'zh'), '\u533a\u5757 974,784\uff082026\u5e7411\u670806\u65e5 16:54 GMT+8\uff09');
+    assert.equal(title('Asia/Tokyo', 'ja'), '\u30d6\u30ed\u30c3\u30af 974,784\uff082026\u5e7411\u670806\u65e5 17:54 JST\uff09');
+    assert.equal(c.blockTitle({ height: 974784, time: null }, '06 Nov 2026'), '\u30d6\u30ed\u30c3\u30af 974,784\uff0806 Nov 2026\uff09', 'no time: the day alone');
+  } finally {
+    if (was === undefined) delete process.env.TZ; else process.env.TZ = was;
+    c.lang = 'en';
+  }
 });
