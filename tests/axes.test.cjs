@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { app, firstHeights, urpd } = require('./helpers.cjs');
+const { app, firstHeights, urpd, flush } = require('./helpers.cjs');
 const plain = v => JSON.parse(JSON.stringify(v));   // out of the page's realm, for deepEqual
 
 const DAY = 864e5;
@@ -309,17 +309,22 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   assert.ok(box, 'a box with the figures');
   const want = 'Price: $50,000 \u2013 $65,000 All LTH Within: 150 Days (by 20 Mar 2022)';
   assert.equal(flat(box), want, 'the range and the days, wrapped, and nothing else');
-  // Inside the mark, as wide as it is, at the top: from 3 px inside its left edge to 3 px inside its right one.
-  const bandPx = (65000 - 50000) / L.xaxis.range[1] * 1040;
-  assert.equal(box.xref, 'x'); assert.equal(box.x, 50000); assert.equal(box.xanchor, 'left'); assert.equal(box.xshift, 3);
+  // Inside the mark, as wide as it is, at the top: from 3 px inside its left line to 3 px inside its right one.
+  const span = L.xaxis.range[1], px = x => x / span * 1040, pitch = 1040 * data.binWidth / span;
+  const bandPx = (65000 - 50000) / span * 1040;
+  assert.equal(box.xref, 'x'); assert.equal(box.xanchor, 'left'); assert.equal(box.xshift, 3);
   assert.equal(box.yref, 'paper'); assert.equal(box.y, 1); assert.equal(box.yanchor, 'top');
   assert.ok(Math.abs(box.width + 2 * (box.borderpad + box.borderwidth) - (bandPx - 6)) < 1e-6, 'the box spans the mark');
   for (const row of box.text.split('<br>').map(r => r.replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>'))) assert.ok(row.length * 0.6 * box.font.size * 1.07 <= box.width + 1e-9, row + ' fits');
-  // As it looked while dragged (#markBand): a light tint between two thin white lines the full height of the plot.
-  const tint = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && s.fillcolor === c.MARK_TINT);
-  assert.deepEqual(JSON.parse(JSON.stringify(tint.map(v => [v.x0, v.x1, v.y0, v.y1]))), [[50000, 65000, 0, 1]], 'tinted inside');
+  // As it looked while dragged (#markBand): a light tint between two thin white lines the full height of the plot, each
+  // in the pixel column at the edge of the bar that holds its price (see the next test).
   const edges = L.shapes.filter(s => s.type === 'line' && s.line.color === c.MARK_EDGE);
-  assert.deepEqual(JSON.parse(JSON.stringify(edges.map(e => [e.x0, e.x1, e.yref, e.y0, e.y1, e.line.width]))), [[50000, 50000, 'paper', 0, 1], [65000, 65000, 'paper', 0, 1]].map(e => e.concat(1)), 'a white line at each edge');
+  assert.deepEqual(plain(edges.map(e => [e.x0 === e.x1, e.yref, e.y0, e.y1, e.line.width])), [[true, 'paper', 0, 1, 1], [true, 'paper', 0, 1, 1]], 'a white line at each edge');
+  assert.ok(px(edges[0].x0) < px(50000) + 1 && px(edges[0].x0) > px(50000) - pitch - 1, 'the low line where the bar holding $50,000 starts');
+  assert.ok(px(edges[1].x0) > px(65000) - 1 && px(edges[1].x0) < px(65000) + pitch + 1, 'the high line where the bar holding the last price before $65,000 ends');
+  assert.ok(Math.abs(px(box.x) - (px(edges[0].x0) - 0.5)) < 1e-6, 'the box from its left line');
+  const tint = L.shapes.filter(s => s.type === 'rect' && s.xref === 'x' && s.fillcolor === c.MARK_TINT);
+  assert.deepEqual(plain(tint.map(v => [v.x0, v.x1, v.y0, v.y1])), [[edges[0].x0, edges[1].x0, 0, 1]], 'tinted from one line to the other');
   assert.ok(!L.shapes.some(s => s.xsizemode === 'pixel' || s.ysizemode === 'pixel'), 'no corner brackets');
   assert.match(require('./helpers.cjs').html, /#markBand \{[^}]*background: rgba\(255,255,255,0\.06\);[^}]*border-left: 1px solid rgba\(255,255,255,0\.75\);[^}]*border-right: 1px solid rgba\(255,255,255,0\.75\);/, 'the drag looks the same');
   assert.equal(c.MARK_TINT, 'rgba(255,255,255,0.06)'); assert.equal(c.MARK_EDGE, 'rgba(255,255,255,0.75)');
@@ -333,6 +338,95 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   c.rangeMark = null;
   await c.renderChart(data);
   assert.ok(!markBox(element('chart').layout), 'cleared');
+});
+
+test('a marked range\'s white lines sit between bars, never on one, and a drag moves them a whole bar at a time', async () => {
+  // What the drag looks like on screen, against the bars as Plotly draws them: each bar edge at its position in px,
+  // rounded to 0.01, then to a whole pixel, less 0.01 for the bars' hairline outline. (The user asked for the drag to go
+  // step by step, a bar at a time; the lines used to sit at the exact prices, often on a bar's pixels.)
+  const r2 = v => Math.round(v * 100) / 100;
+  const drawnBars = (gd, m) => {
+    const out = [];
+    for (const tr of gd.data.filter(t => t.type === 'bar')) tr.x.forEach((x, i) => {
+      if (!(tr.y[i] > 0)) return;
+      const p0 = x - tr.width[i] / 2, p1 = p0 + tr.width[i];
+      out.push([Math.round(r2(p0 * m)) - 0.01, Math.round(r2(p1 * m)) - 0.01]);
+    });
+    return out;
+  };
+  // The pixels a bar covers inside [a, b): none, for a line in a gap.
+  const covered = (bars, a, b) => bars.reduce((s, [x0, x1]) => s + Math.max(0, Math.min(x1, b) - Math.max(x0, a)), 0);
+  let W = 1498, ctx = null;
+  const win = {}, made = [], raf = [];
+  const { c, element } = app({
+    Plotly: { react(id, traces, layout, config) {
+      const gd = ctx.document.getElementById(id), span = layout.xaxis.range[1];
+      Object.assign(gd, { data: traces, layout, config });
+      gd._fullLayout = { width: W + 160, legend: { _height: 29 }, yaxis: { _length: 700, _offset: 0 },
+        xaxis: { _length: W, _offset: 0, p2d: p => p / W * span, l2p: v => v / span * W } };
+      return Promise.resolve();
+    } },
+    addEventListener(type, fn) { (win[type] = win[type] || []).push(fn); },
+    requestAnimationFrame(fn) { raf.push(fn); return raf.length; }, cancelAnimationFrame() {}
+  });
+  ctx = c;
+  c.document.createElement = () => { const el = { style: {}, appendChild() {} }; made.push(el); return el; };
+  c.document.body.appendChild = () => {};
+  c.splitMode = false;
+  // A coin every $250 from $1,000 to $70,750: bars all along the axis, so a line on one would show.
+  const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000,
+    cohorts: () => [Object.fromEntries(Array.from({ length: 280 }, (_, i) => [1000 + 250 * i, 1]))] });
+  c.priceHighLow = { high: null, low: null };
+  const gd = element('chart');
+  for (const [w, bins, dpr] of [[1498, 625, 1], [1252, 625, 1], [1760, 625, 1], [1600, 300, 1], [1500, 50, 1], [1120, 625, 1], [1120, 625, 2], [1300, 1000, 2]]) {
+    W = w; c.NUM_BINS = bins; c.devicePixelRatio = dpr; gd.clientWidth = W + 160;
+    c.rangeMark = null;
+    const data = c.buildData(dates[50], raws[50]);
+    await c.renderChart(data);
+    const span = gd.layout.xaxis.range[1], m = W / span, pitch = W * data.binWidth / span, gaps = pitch >= 2;
+    const bars = drawnBars(gd, m), seps = [];
+    const sepTrace = gd.data.find(t => t.meta === 'separators');
+    if (sepTrace) sepTrace.x.forEach(x => { if (x !== null) seps.push(r2(x * m)); });
+    const what = `${W} px, ${bins} bins, ${dpr}x (a ${pitch.toFixed(2)} px pitch)`;
+    // Where a line goes: in the gap between two bars (2 px pitch and up), or on the separator over the last pixel of the
+    // bar left of the edge (narrower, solid bars), one device pixel wide.
+    const checkLine = (centre, width, label) => {
+      if (gaps) { assert.equal(width, 1, label); assert.ok(covered(bars, centre - 0.5, centre + 0.5) < 0.02, `${label}: in a gap, on no bar (${what})`); return; }
+      assert.equal(width, 1 / dpr, `${label}: a device pixel wide (${what})`);
+      const near = seps.reduce((b, s) => Math.abs(s - centre) < Math.abs(b - centre) ? s : b, Infinity);
+      if (Math.abs(near - centre) < pitch / 2) assert.ok(Math.abs(near - centre) < 0.011, `${label}: on the separator (${what})`);
+    };
+    // A drag from 30% of the way along, a pixel at a time.
+    const x0 = Math.round(0.3 * W) + 0.4;
+    gd.emit('mousedown', { button: 0, clientX: x0, clientY: 300 });
+    let inside = null;
+    for (let dx = 5; dx <= 45; dx++) {
+      win.mousemove.forEach(f => f({ clientX: x0 + dx, clientY: 300, preventDefault() {} }));
+      while (raf.length) raf.shift()();
+      const band = made[made.length - 2].style;   // made: the layer, the band, the box
+      const l = parseFloat(band.left), wd = parseFloat(band.width), bl = parseFloat(band.borderLeftWidth), br = parseFloat(band.borderRightWidth);
+      checkLine(l + bl / 2, bl, `the dragged band's left line at +${dx} px`);
+      checkLine(l + wd - br / 2, br, `the dragged band's right line at +${dx} px`);
+      // The bars inside it: one more or the same at each pixel, never part of one.
+      const n = bars.filter(([a, b]) => a >= l + bl - 0.02 && b <= l + wd - br + 0.02).length;
+      if (gaps && inside !== null) assert.ok(n === inside || n === inside + 1, `a bar at a time (${what})`);
+      inside = n;
+    }
+    const last = made[made.length - 2].style, lastL = parseFloat(last.left), lastR = lastL + parseFloat(last.width);
+    win.mouseup.forEach(f => f({}));
+    await flush();
+    // Let go: drawn where it was dragged, on the same pixels.
+    const lines = gd.layout.shapes.filter(s => s.type === 'line' && s.line.color === c.MARK_EDGE);
+    assert.equal(lines.length, 2, what);
+    assert.ok(Math.abs(r2(lines[0].x0 * m) - (lastL + lines[0].line.width / 2)) < 0.011, `the drawn left line where the dragged one was (${what})`);
+    assert.ok(Math.abs(r2(lines[1].x0 * m) - (lastR - lines[1].line.width / 2)) < 0.011, `the drawn right line where the dragged one was (${what})`);
+    lines.forEach((ln, i) => checkLine(r2(ln.x0 * m), ln.line.width, `the drawn ${i ? 'right' : 'left'} line`));
+    // A mark kept from a day with other bars (here, other prices than this day's bar edges) is drawn out to whole bars.
+    c.rangeMark = { lo: c.rangeMark.lo + 0.3 * data.binWidth, hi: c.rangeMark.hi + 0.6 * data.binWidth };
+    await c.renderChart(data);
+    gd.layout.shapes.filter(s => s.type === 'line' && s.line.color === c.MARK_EDGE).forEach((ln, i) => checkLine(r2(ln.x0 * m), ln.line.width, `a kept mark's ${i ? 'right' : 'left'} line`));
+  }
+  c.devicePixelRatio = undefined;
 });
 
 test('a marked range\'s box text wraps to the mark\'s width and shrinks only as far as its words need', () => {
