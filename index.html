@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-RXxKLGg//fjYHENcuqb3VwxAfqtNM/7jSQplnHzs/NE=' 'sha256-WAYYLiMHaRnZXEEoqB9iUdGgLN5BFGxjOUF+U7cx+PY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-nZB4pOzz5psQUmT2EGOGkkiTWPqFtRIlwE2wLor8K34=' 'sha256-WAYYLiMHaRnZXEEoqB9iUdGgLN5BFGxjOUF+U7cx+PY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -2944,10 +2944,17 @@ async function init() {
   fetchJSON("data/youtube.json").then(setYouTubeLinks, function() {});   // on its own: the chart never waits for it
   try {
     wordDateBox(function() { return t("loadingDates"); });
+    // The page cannot start without the list of days. One of these left without an answer (it timed out, or the
+    // connection dropped, or the server answered 5xx) is asked once more before the page gives up for good: on
+    // 17 Nov 2026 the first request of a visit hung past the 15 s limit and the page was dead until reloaded. A 4xx is
+    // an answer, and is not asked again.
+    var twice = function(url) {
+      return fetchJSON(url).catch(function(e) { if (/HTTP 4\d\d/.test(String(e && e.message))) throw e; return fetchJSON(url); });
+    };
     var loaded = await Promise.all([
-      fetchJSON(BASE + "/api/series/first_height/day1"),   // with the dates below, which days have a URPD
-      fetchJSON(BASE + "/api/series/price_close/day1").catch(function(e) { console.warn("Price array preload failed:", e); return null; }),
-      fetchJSON(BASE + "/api/series/date/day1"),
+      twice(BASE + "/api/series/first_height/day1"),   // with the dates below, which days have a URPD
+      twice(BASE + "/api/series/price_close/day1").catch(function(e) { console.warn("Price array preload failed:", e); return null; }),
+      twice(BASE + "/api/series/date/day1"),
       // The axis history (see "Axes that only grow"). Without it every day still draws, on axes fitted to itself.
       fetchJSON("data/scales.json").catch(function(e) { console.warn("Axis history unavailable, axes fit each day:", e); return null; })
     ]);

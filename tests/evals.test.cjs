@@ -254,3 +254,16 @@ test('a moment is put on a zone\'s own clock, with its offset then', async () =>
   assert.equal(clockIn(Date.UTC(2024, 0, 15, 12) / 1000, 'America/New_York').offset, -300, 'winter time');
   assert.equal(clockIn(Date.UTC(2024, 0, 15, 12) / 1000, 'Pacific/Auckland').offset, 780, 'summer time in the south');
 });
+
+test('the collector looks for the page\'s notice by whether it is displayed', () => {
+  // The notice (#status) is fixed to the window, and an element fixed to the window has no offsetParent whether it
+  // shows or not. That was the collector's test until 17 Nov 2026: it never saw a notice, so a draw the page had given
+  // up on was waited out for 240 s (twice in that day's review of the live site), and the draws check's notice clause,
+  // which passes its made failures above, could not fire on a real trace.
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(html, /#status \{[^}]*position: fixed/, 'the notice is fixed to the window');
+  assert.match(html, /el\.style\.display = text \? "block" : "none"/, 'and shown by its display');
+  const code = fs.readFileSync(path.join(__dirname, '..', 'evals', 'collect.mjs'), 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  assert.doesNotMatch(code, /offsetParent/);
+  assert.equal((code.match(/getComputedStyle\((?:s|status)\)\.display !== "none"/g) || []).length, 3, 'in the facts, while waiting for a chart, and after each press');
+});
