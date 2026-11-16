@@ -517,26 +517,29 @@ test('a marked range\'s box fits the plot and the mark: the bands in short, then
     return a ? { text: a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'), rows: a.text.split('<br>').length, size: a.font.size, pad: a.borderpad, yshift: a.yshift } : null;
   };
   // (The axis ends at $60,156, and so does a mark past it. The price, $60,000, is inside the mark, so the box starts
-  // below the price box.) Every coin is in the mark: its share is the whole day, a 23rd of it in each band.
+  // below the price box, which here sits 13 px down, below the dot on the price line at its high: 13 + 63 + 6, and the
+  // box's 3 px inset. Until November 2026 the box went by where the price box was before it moved, and covered its
+  // last 13 px.) Every coin is in the mark: its share is the whole day, a 23rd of it in each band.
   const range = 'Price: $50,000 \u2013 $60,156 ', share = 'USD Value Last Moved Here: 100.0% ', days = 'All LTH Within: 150 Days (by 20 Mar 2022)';
   // Its bottom (how far down it starts, -yshift, plus its rows, padding and border) stays 3 px inside the plot.
   const inside = (b, h) => b.rows * Math.round(b.size * 1.31) + 2 * (b.pad + 1) - b.yshift <= h - 3;
   let b = await box(50000, 65000, 2000);
+  assert.equal(b.yshift, -85, 'below the price box where it ended up');
   assert.ok(b.text.startsWith(range + share + '<1h USD Value Last Moved Here: 4.35% 1h-1d USD Value Last Moved Here: 4.35% '), 'room for every line in full: ' + b.text.slice(0, 160));
   assert.ok(b.text.endsWith('>15y USD Value Last Moved Here: 4.35% ' + days), b.text.slice(-120));
   assert.equal(b.size, 13);
-  b = await box(50000, 65000, 560);
+  b = await box(50000, 65000, 573);
   assert.ok(b.text.startsWith(range + share + '<1h: 4.35% 1h-1d: 4.35% ') && b.text.endsWith('>15y: 4.35% ' + days), 'the bands in short: ' + b.text);
-  assert.ok(inside(b, 560), 'inside the plot');
-  b = await box(50000, 65000, 280);
-  assert.equal(b.text, range + share + days, 'the range, its share and the days'); assert.ok(inside(b, 280), 'inside the plot');
-  b = await box(50000, 65000, 135);
-  assert.equal(b.text, range + days, 'the range and the days'); assert.ok(b.size < 13); assert.ok(inside(b, 135), 'inside the plot');
-  b = await box(50000, 65000, 116);
+  assert.ok(inside(b, 573), 'inside the plot');
+  b = await box(50000, 65000, 293);
+  assert.equal(b.text, range + share + days, 'the range, its share and the days'); assert.ok(inside(b, 293), 'inside the plot');
+  b = await box(50000, 65000, 148);
+  assert.equal(b.text, range + days, 'the range and the days'); assert.ok(b.size < 13); assert.ok(inside(b, 148), 'inside the plot');
+  b = await box(50000, 65000, 129);
   assert.equal(b.text, days, 'the days line alone');
-  b = await box(50000, 65000, 100);
+  b = await box(50000, 65000, 113);
   assert.equal(b.text, '150 Days', 'the number of days alone'); assert.equal(b.pad, 1, 'on less padding');
-  assert.equal(await box(50000, 65000, 80), null, 'too short even for that: no box');
+  assert.equal(await box(50000, 65000, 93), null, 'too short even for that: no box');
   // A mark too narrow for the words keeps the number of days alone too; over a range where no coin last moved, No BTC.
   b = await box(58000, 65000, 2000);
   assert.equal(b.text, '150 Days'); assert.equal(b.pad, 1);
@@ -547,6 +550,69 @@ test('a marked range\'s box fits the plot and the mark: the bands in short, then
   b = await box(20000, 22000, 2000);
   assert.equal(b.text, 'No BTC', 'too narrow for that: in short'); assert.equal(b.pad, 1);
   assert.equal(await box(20000, 21500, 2000), null, 'too narrow even for that: no box');
+});
+
+test('a marked range\'s box keeps clear of a cycle label under the mark: below one at the top, above one further down', async () => {
+  // The daily evals, 7 and 12 Nov 2026: with its figures back the box covered Cycle 5 Top (27 Dec 2025) and Cycle 2 Top
+  // (9 Mar 2014), each label at the top of the plot inside the marked range.
+  const { c, element } = app();
+  c.splitMode = true;
+  // The price climbs to its high on 9 Nov 2021 and falls away: the Cycle 4 Top label sits at the top of the plot, on the
+  // price line's own time axis, about 0.84 of the way across. A coin at every $2,000 so any mark holds coins.
+  const stamps = {}; for (let p = 2000; p <= 68000; p += 2000) stamps[p] = 1;
+  const { dates, raws } = market(c, { start: '2021-09-01', n: 120, close: i => 68000 - 400 * Math.abs(i - 69), cohorts: () => [stamps, {}] });
+  const day = dates.indexOf('2021-12-15'), data = c.buildData(dates[day], raws[day]);
+  c.priceHighLow = { high: null, low: null };
+  const draw = async (lo, hi) => {
+    c.rangeMark = { lo, hi };
+    await c.renderChart(data);
+    const L = element('chart').layout;
+    return { L, box: L.annotations.find(a => a.xref === 'x' && a.width), label: L.annotations.find(a => /Cycle 4 Top/.test(a.text)), ctx: c.lastMarkContext };
+  };
+  let d = await draw(2000, 22000);
+  assert.ok(d.label, 'the label is on the chart');
+  assert.equal(d.ctx.labels.length, 2, 'and the box is told where it (with its marker) and the dot on the selected day are');
+  const k = d.ctx.labels.find(b => !b.dot), dot = d.ctx.labels.find(b => b.dot), span = d.L.xaxis.range[1];
+  // The dot: 344 of the window's 365 days across, as far down as $53,600 is below the line's $68,000 top.
+  assert.ok(Math.abs((dot.x0 + dot.x1) / 2 - 344 / 365) < 1e-9 && Math.abs((dot.y0 + dot.y1) / 2 - (1 - 53600 / 68000) * d.ctx.plotH) < 1e-9, JSON.stringify(dot));
+  assert.ok(k.x0 > 0.7 && k.x1 < 1 && k.x1 - k.x0 > 0.05 && k.y0 <= 0 && k.y1 >= 19 && k.y1 < 30, 'at the top, right of the middle: ' + JSON.stringify(k));
+  const under = [(k.x0 - 0.05) * span, (k.x0 + 0.04) * span];   // under the label, clear of the price box and the dot
+  assert.ok(under[1] / span < dot.x0 && under[0] / span > d.ctx.spotBox.x1);
+  // A mark away from the label: its box at the top of the plot, 3 px in.
+  assert.equal(d.box.yshift, -3);
+  assert.equal(d.L.xaxis.range[1], span);
+  // A mark under the label: the box starts 4 px below it.
+  d = await draw(under[0], under[1]);
+  assert.equal(d.box.yshift, -(k.y1 + 4 + 3), 'below the label');
+  // The same while the mark is being dragged, which lays the box out from the last drawing.
+  assert.equal(c.markBoxLayout(data, under[0], under[1], d.ctx).y0, k.y1 + 4);
+  // A label further down the plot (a cycle bottom's, three quarters of the way down): the box ends above it, on a
+  // smaller size or fewer lines if it has to.
+  const ctx = Object.assign({}, d.ctx, { plotH: 300, labels: [] }), at = [0.72 * span, 0.92 * span];
+  const free = c.markBoxLayout(data, at[0], at[1], ctx);
+  assert.ok(free.rows.length >= 5, 'the range, its share, LTH, STH and the days, wrapped to the mark');
+  const low = c.markBoxLayout(data, at[0], at[1], Object.assign({}, ctx, { labels: [{ x0: 0.75, x1: 0.85, y0: 230, y1: 249 }] }));
+  assert.equal(low.y0, free.y0, 'it stays where it was');
+  assert.ok(free.y0 + free.h + 2 * free.inset > 226, 'the full box would have reached the label');
+  assert.ok(low.y0 + low.h + 2 * low.inset <= 226, 'and it ends above the label: ' + JSON.stringify([low.y0, low.h]));
+  assert.ok(low.rows.length < free.rows.length || low.size < free.size, 'smaller, or on fewer lines');
+  // The dot under the mark (it is drawn over everything, and hid letters of the box on 20 Jan 2022): a box that stops
+  // short of it stays put; one that would reach it starts below it where that leaves more room.
+  const dotAt = y => ({ x0: 0.8, x1: 0.82, y0: y - 10, y1: y + 10, dot: true });
+  const tall = Object.assign({}, ctx, { plotH: 800 }), full = c.markBoxLayout(data, at[0], at[1], tall);
+  const clear = c.markBoxLayout(data, at[0], at[1], Object.assign({}, tall, { labels: [dotAt(full.y0 + full.h + 40)] }));
+  assert.deepEqual([clear.y0, clear.h], [full.y0, full.h], 'the dot below the box: nothing changes');
+  const moved = c.markBoxLayout(data, at[0], at[1], Object.assign({}, tall, { labels: [dotAt(full.y0 + 60)] }));
+  assert.equal(moved.y0, full.y0 + 60 + 10 + 4, 'the dot inside the box: the box starts below it');
+  assert.equal(moved.rows.length, full.rows.length, 'with every line');
+  // One beside the mark, not under it, changes nothing.
+  const beside = c.markBoxLayout(data, at[0], at[1], Object.assign({}, ctx, { labels: [{ x0: 0.1, x1: 0.2, y0: 0, y1: 19 }] }));
+  assert.deepEqual([beside.y0, beside.h, beside.rows.length], [free.y0, free.h, free.rows.length]);
+  // A label at the top and one further down, both under a mark left of the price box: below the first, above the second.
+  const left = [0.2 * span, 0.4 * span];
+  assert.equal(c.markBoxLayout(data, left[0], left[1], tall).y0, 0);
+  const both = c.markBoxLayout(data, left[0], left[1], Object.assign({}, tall, { labels: [{ x0: 0.25, x1: 0.35, y0: 620, y1: 639 }, { x0: 0.3, x1: 0.4, y0: -7, y1: 19 }] }));
+  assert.equal(both.y0, 23); assert.ok(both.y0 + both.h + 2 * both.inset <= 616);
 });
 
 test('a marked range\'s share comes from the recorded prices, [a, b)', () => {
@@ -645,6 +711,34 @@ test('build-scales writes the history the page reads back, one day at a time', a
     await c.renderChart(data);
     assert.ok(Math.abs(element('chart').layout.yaxis.range[1] - (Math.max(...shares(c.barValues(data, false))) || 1)) < 1e-9, d);
   }
+});
+
+test('on a phone the price box keeps clear of the dot at the size the dot has there, several times its size on a desktop', async () => {
+  // The line reached $60,000 on day 40 and the day shown, day 300 of 400, closed at `share` of that: the dot is that
+  // far below the top of the plot, three quarters across, with the price box (63 px tall) over it.
+  async function draw(share, fit) {
+    const phone = fit ? { __PHONE: { w: 2000, h: 924 }, getComputedStyle: () => ({ getPropertyValue: k => (k === '--fit' ? String(fit) : '') }) } : {};
+    const { c, element } = app(phone);
+    const { dates, raws } = market(c, { start: '2021-01-01', n: 400, close: i => (i === 300 ? 60000 * share : i === 40 ? 60000 : 30000), cohorts: () => [{ 30000: 1, 50000: 1 }] });
+    await c.renderChart(c.buildData(dates[300], raws[300]));
+    const L = element('chart').layout, box = L.annotations.find(a => a.xref === 'x' && a.yref === 'paper' && /<br>/.test(a.text));
+    return { down: box.yshift ? -box.yshift : 0, dotY: (1 - share) * (700 - L.margin.t - L.margin.b) };
+  }
+  // A desktop: the dot is 9 px around its middle. 14% down the plot it is clear of the box, 10% down it is not.
+  assert.equal((await draw(0.86)).down, 0, 'a desktop, the dot clear below the box: the box stays at the top');
+  let d = await draw(0.90);
+  assert.equal(d.down, Math.ceil(d.dotY + 9 + 4), 'a desktop, the dot under the box: the box starts just below the dot');
+  // A phone held upright draws the 2000 px figure at 0.195 of its size and the dot at its full size, so the dot is
+  // 9 / 0.195 = 46 px of the figure around its middle. Until November 2026 it was allowed 9 px there too, and at 14%
+  // down the box stayed where the dot covered its last line.
+  d = await draw(0.86, 0.195);
+  assert.equal(d.down, Math.ceil(d.dotY + 9 / 0.195 + 4), 'a phone, the same day: the box starts below the dot as large as it is there');
+  assert.ok(d.down > d.dotY + 46 && d.down < d.dotY + 52);
+  assert.equal((await draw(0.80, 0.195)).down, 0, 'a phone, the dot clear below the box even at that size: the box stays');
+  // The same phone on its side draws the figure at 0.42: the dot is 21 px of it.
+  d = await draw(0.86, 0.42);
+  assert.equal(d.down, Math.ceil(d.dotY + 9 / 0.42 + 4));
+  assert.equal((await draw(0.84, 0.42)).down, 0);
 });
 
 test('the spot price box keeps clear of the pin\'s label and the ▲ figure at the top left', async () => {

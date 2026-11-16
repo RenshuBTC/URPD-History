@@ -108,6 +108,40 @@ test('a failed cohort preserves successful and in-flight siblings for retry', as
   }
 });
 
+test('one request left unanswered while the day\'s others were answered is asked once more; not when none was, nor after a 4xx', async () => {
+  // 14 Nov 2026: one of a day's 23 requests hung past the 15 s limit and the whole day was an error to retry by hand.
+  const three = () => { const { c } = app(); c.AGE_BANDS = [{ cohort: 'a', label: 'a' }, { cohort: 'b', label: 'b' }, { cohort: 'c', label: 'c' }]; c.AGE_BAND_COLORS = ['a', 'b', 'c']; return c; };
+  const asked = (calls, band) => calls.filter(u => u.includes('/' + band + '/')).length;
+  // b hangs while a and c answer: b is asked again, and the day loads.
+  let c = three(), calls = [], stall = deferred();
+  c.fetchJSON = url => { calls.push(url); if (!url.includes('/b/')) return Promise.resolve(url.includes('/a/') ? { 100: 2 } : { 200: 3 }); return asked(calls, 'b') === 1 ? stall.promise : Promise.resolve({ 100: 4 }); };
+  let loading = c.fetchRaw('2026-09-19'); await flush();
+  stall.reject(new Error('The request timed out after 15 s'));
+  assert.deepEqual(JSON.parse(JSON.stringify((await loading).all)), { 100: 6, 200: 3 });
+  assert.deepEqual([asked(calls, 'a'), asked(calls, 'b'), asked(calls, 'c')], [1, 2, 1], 'b alone, once more');
+  // b fails the second time too: the day is an error, after two tries and no third.
+  c = three(); calls = []; stall = deferred();
+  c.fetchJSON = url => { calls.push(url); if (!url.includes('/b/')) return Promise.resolve({ 100: 1 }); return asked(calls, 'b') === 1 ? stall.promise : Promise.reject(new Error('HTTP 502')); };
+  loading = c.fetchRaw('2026-09-19'); await flush();
+  let rejected = assert.rejects(loading, /HTTP 502/);
+  stall.reject(new Error('Failed to fetch')); await rejected; await flush();
+  assert.equal(asked(calls, 'b'), 2);
+  // No request answered (the API is down): none is asked again, so the notice is not kept waiting twice as long.
+  c = three(); calls = []; const down = [deferred(), deferred(), deferred()];
+  c.fetchJSON = url => { calls.push(url); return down[calls.length - 1].promise; };
+  loading = c.fetchRaw('2026-09-19'); await flush();
+  rejected = assert.rejects(loading, /timed out/);
+  down.forEach(d => d.reject(new Error('The request timed out after 15 s'))); await rejected; await flush();
+  assert.equal(calls.length, 3, 'each asked once');
+  // A 4xx is an answer (a block not published yet is a 404): not asked again, whatever the others did.
+  c = three(); calls = []; stall = deferred();
+  c.fetchJSON = url => { calls.push(url); return url.includes('/b/') ? stall.promise : Promise.resolve({ 100: 1 }); };
+  loading = c.fetchRaw('2026-09-19'); await flush();
+  rejected = assert.rejects(loading, /HTTP 404/);
+  stall.reject(new Error('HTTP 404')); await rejected; await flush();
+  assert.equal(asked(calls, 'b'), 1);
+});
+
 test('cached loads await drawing and propagate draw errors to the caller', async () => {
   const { c } = app(); const render = deferred();
   c.allDates = ['2026-09-19']; c.currentIdx = 0;
