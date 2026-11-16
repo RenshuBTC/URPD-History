@@ -57,12 +57,13 @@ else {
   const { collect } = await import("./collect.mjs");
   traces = await collect(p, { site: opt.site, outDir, shots: opt.shots });
 }
-const refs = await loadRefs();
+// BRK's own figures at every block a trace shows, asked for once.
+const refs = await loadRefs(traces.filter((t) => t.facts && t.facts.block).map((t) => t.facts.block.height));
 const today = new Date().toISOString().slice(0, 10);
 const drawn = traces.find((t) => t.facts && t.facts.youtube && t.facts.youtube.length), links = drawn ? drawn.facts.youtube : null;
 const site = { youtube: await siteFile(opt.site, "data/youtube.json"), scales: await siteFile(opt.site, "data/scales.json"), links, today };
 if (server) server.close();
-const result = judge(traces, { ref: refs.ref, inProgress: refs.lastDay }, site);
+const result = judge(traces, { ref: refs.ref, refAt: refs.refAt, dayOf: refs.dayOf, lastHeight: refs.lastHeight, inProgress: refs.lastDay }, site);
 result.run = { at: new Date().toISOString(), site: opt.local ? "local checkout" : opt.site, plan: p.kind, seed: p.seed };
 fs.writeFileSync(path.join(outDir, "traces.json"), JSON.stringify(traces));
 fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify(result, null, 1));
@@ -73,6 +74,10 @@ const pct = (a, b) => (b ? (100 * a / b).toFixed(1) + "%" : "-");
 console.log(`\nPass all: ${result.passAll} of ${result.total} traces (${pct(result.passAll, result.total)})`);
 for (const c of TRACE_CHECKS) { const k = result.perCheck[c.id]; console.log(`  ${c.id.padEnd(13)} ${String(k.passed).padStart(4)} of ${String(k.applied).padEnd(4)} ${k.applied ? pct(k.passed, k.applied) : "(none applied)"}`); }
 for (const c of SITE_CHECKS) { const v = result.site[c.id]; console.log(`  ${c.id.padEnd(13)} ${v.pass ? "pass" : "FAIL: " + v.why}`); }
+// A trace that drew only at its second try (see collect.mjs) passes, and is named: one now and then is BRK answering
+// slowly, several in a run is the site struggling.
+const retried = traces.filter((t) => t.tries === 2 && !t.error);
+if (retried.length) console.log(`\nDrew at the second try: ${retried.map((t) => t.id + " (" + String(t.firstError).slice(0, 90) + ")").join("; ")}`);
 const failed = result.traces.filter((r) => !r.pass);
 if (failed.length) console.log("\nFailures:");
 for (const r of failed) for (const [id, v] of Object.entries(r.verdicts)) if (!v.pass) console.log(`  ${r.id} ${r.date} ${r.view} ${r.window} ${r.lang}: ${id}: ${v.why}`);

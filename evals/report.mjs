@@ -20,7 +20,8 @@ export function writeReport(result, traces, file) {
   const cards = rows.map((r) => {
     const t = byId.get(r.id) || {}, f = t.facts || {};
     const verdicts = Object.entries(r.verdicts).map(([id, v]) => `<li class="${v.pass ? "ok" : "bad"}">${esc(id)}${v.pass ? "" : ": " + esc(v.why)}</li>`).join("");
-    const what = [r.date, r.view, r.window, r.lang, Object.keys(r.settings || {}).length ? JSON.stringify(r.settings) : "", r.mark ? "mark " + JSON.stringify(r.mark) : "", t.why || ""].filter(Boolean).join(" · ");
+    const what = [r.date, r.view, r.window, r.lang, t.tz || "", Object.keys(r.settings || {}).length ? JSON.stringify(r.settings) : "", r.mark ? "mark " + JSON.stringify(r.mark) : "",
+      t.steps && t.steps.length ? "pressed " + t.steps.join(", ") : "", t.tries === 2 ? "drew at the second try" : "", t.why || ""].filter(Boolean).join(" · ");
     return `<section class="${r.pass ? "" : "fail"}"><h3>${esc(r.id)} ${r.pass ? "" : "FAIL"}</h3><p>${esc(what)}</p>
       ${t.shot ? `<a href="${esc(t.shot)}"><img src="${esc(t.shot)}" alt="${esc(r.id)}" loading="lazy"></a>` : ""}
       <ul>${verdicts}</ul><p class="small">${esc(f.title || t.error || "")}</p></section>`;

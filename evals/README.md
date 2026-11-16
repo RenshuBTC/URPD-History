@@ -8,23 +8,27 @@ looking at new outputs, because the checks only know the failures already found.
 
 ## What a trace is
 
-One day of the chart drawn one way a visitor can see it: the day, the view (% USD or % BTC, AGE or LTH/STH), the
-window (desktop, laptop, wide, phone upright or turned), the language (English, Chinese, Japanese), the toolbar
-settings (bins, smoothing, Y-max, a pinned axis) and, sometimes, a marked price range. `collect.mjs` draws it in
-headless Chromium from the live data and records what came out: the day's totals, the bars, the axes, every
-word on the chart with where it sits on screen, the toolbar, any error in the console, and a screenshot.
+One day, or one block, of the chart drawn one way a visitor can see it: the day or the block (1B), the view (% USD or
+% BTC, AGE or LTH/STH), the window (desktop, laptop, wide, phone upright or turned), the language (English, Chinese,
+Japanese), the visitor's time zone (a block's time is printed on the visitor's own clock), the toolbar settings (bins,
+smoothing, Y-max, a pinned axis) and, sometimes, a marked price range or presses of the step buttons. `collect.mjs`
+draws it in headless Chromium from the live data and records what came out: the totals, the bars, the axes, every
+word on the chart with where it sits on screen, the dot on the price line, the toolbar, where each press of a step
+button landed, any error in the console, and a screenshot.
 
-`plan.mjs` chooses the traces. `review` is the error-analysis set, 117 traces over 36 days: the edges of the history
-(the genesis day, the days when every coin was still at $0), the cycle tops, bottoms and halvings, 12 random days,
-the latest complete day and the day in progress, each in two or four views, plus other windows, languages,
-settings and eight marked ranges. `daily` is a smaller sample, about 12 traces: the latest days in every view and
-random days, windows, languages, settings and marked ranges that change with the date, so that over time the
-whole history is covered.
+`plan.mjs` chooses the traces. `review` is the error-analysis set, 161 traces over 45 days and 27 blocks: the edges of
+the history (the genesis day, the days when every coin was still at $0), the cycle tops, bottoms and halvings, 12
+random days, the latest complete day and the day in progress, each in two or four views, plus other windows,
+languages and settings, 15 marked ranges, 34 blocks in six time zones (the newest block, a day's first and last, the
+halving block, blocks before any coin had a price, random ones) and 8 runs of the step buttons. `daily` is a smaller
+sample, 16 traces: the latest days in every view, the newest block, and random days, blocks, windows, languages, time
+zones, settings, marked ranges and button presses that change with the date, so that over time the whole history is
+covered.
 
 ## Error analysis, November 2026
 
-All 117 traces of the `review` plan were drawn from the live site and every screenshot was looked at, with notes on
-anything that made the chart less useful (open coding). The notes were then grouped into failure modes and counted
+All 117 traces of the first `review` plan were drawn from the live site and every screenshot was looked at, with notes
+on anything that made the chart less useful (open coding). The notes were then grouped into failure modes and counted
 (axial coding), together with what the 188 merged pull requests had fixed before, which is where the earlier
 failures are recorded.
 
@@ -41,16 +45,56 @@ failures are recorded.
 | A page wider than the window, or the toolbar wrapping or scrolling | 0 | #15, #94, #101 | `fits-window` | checked daily |
 | Stale videos or axis history | — | #166, #169; the video workflow failed twice on 31 Oct 2026 | `video-links`, `axis-history` | checked daily |
 
+## Second error analysis, 17 November 2026
+
+Two weeks on, the evals were rebuilt the same way, for two reasons. The chart had gained things no check covered:
+one block at a time (1B) and a block's time on the visitor's own clock (#199, #200). And the daily run had turned red
+on four of its first thirteen days (7, 8, 12 and 14 Nov), which is the checks doing their job, or failing at it, and
+each run had to be read to tell which.
+
+The four red runs' traces were read first. Then 161 traces were drawn from the live site (the 117, six made from the
+red runs, and 38 on blocks, time zones and the step buttons), every screenshot was looked at, and the notes were
+grouped and counted as before.
+
+| Failure | In the 161 traces | In the daily runs | Check | Now |
+|---|---|---|---|---|
+| A marked range's box is written over a cycle top's label | 2 of 15 marked ranges (t118, t119) | red on 7 and 12 Nov | `labels-clear` | fixed: the box starts below a label at the top of the plot and stops above one further down |
+| The dot on the price line, which is drawn over everything, hides letters of a marked range's box | 1 (t123) | — | `labels-clear`, which now knows where the dot is | fixed: the box keeps clear of the dot |
+| On a phone held upright the dot covers the last line of the price box: the dot keeps its size on the screen while the figure is drawn at a fifth of its size, and the box allowed for a desktop's dot | 1 of 5 (t093) | — | `labels-clear` | fixed: the box and the cycle labels allow for the dot as large as it is there |
+| A marked range's box was laid out against where the price box stood before it moved clear of the dot, and covered its last 13 px | found reading the code for the rows above | — | `labels-clear` | fixed |
+| The chart does not draw: one of a day's 23 requests goes unanswered, the page calls it off after 15 s and shows an error in place of the chart | 1 (t088, with BRK busy answering a second collection; it drew at a second try) | red on 14 Nov | `draws` | fixed: a request that fails while the day's others were answered is asked once more |
+| With 1B the chart shows another block, or its time on another clock, day or price | 0 of 34 blocks | — | `right-block` (new) | checked daily |
+| A step button does not move as it says: 1B a block at a time, 1D from a block to the end of its day, nothing past the newest block | 0 of 8 runs | — | `block-steps` (new) | checked daily |
+
+The same reading found five mistakes in the evals themselves, the kind the FAQ warns of: a check nobody has checked
+is only an opinion.
+
+- `in-profit` allowed half a point between the price box and BRK's own figure, a guess made from the largest
+  difference seen (0.31). On 16 Jun 2022 they are 0.62 apart and the chart is right (red on 8 Nov): 0.62% of the coins
+  last moved in the day's last block, at the close itself, which BRK records as $20,330, above the $20,325.71 close.
+  The check is now exact, in two parts: the box has to be the recorded prices at or below the price, to the last
+  digit, and BRK's own figure has to lie between the coins surely in profit and all but those surely in loss.
+- `mark-edges` added up a white line's overlap over every age band stacked on the same bar, and failed a good trace
+  by 0.07 px (14 Nov). It now measures against the bars' outline.
+- `draws` failed a trace whose chart drew, because a request for a day the page was fetching ahead had failed (2 of
+  the 161). The collector now records which address an error is for, and a failed request for a day's data is left
+  to the page's own notice and to the data checks.
+- The collector read a marked range's box while its days line still read "…", loading. It now waits for it, and
+  `mark-box` fails a box still loading after 20 s.
+- The collector waited 240 s on a page that had already said it could not load. It now stops once the notice has
+  stood, tries once more after 20 s, and a trace that drew only at its second try is named in the run's output.
+
 Noted, with no check, because each is a choice for the owner rather than a fault:
 
 - On a phone held upright the chart is a small letterboxed strip. That is by design (index.html: the figure keeps
   its desktop proportions and asks to be turned), and turned it fills the screen.
 - The latest day is the day in progress: its price is the latest, not a close, and its totals grow until midnight
-  UTC. The data checks leave it out, since its reference moves with every block.
-- The box's coins in profit can differ from BRK's own figure by up to 0.31 points (crash and top days), because the
-  site counts BRK's buckets, whose prices are rounded to four significant figures, so that the box agrees with
-  Percent of Total at the dashed line (#144), while BRK counts each coin's own price.
-- At a cycle top the price line's orange dot can touch the price box (4 traces). Cosmetic.
+  UTC. The data checks leave it out, since its reference moves with every block. A block is settled once mined.
+- The price box counts the coins recorded at or below the price, so that it agrees with Percent of Total at the
+  dashed line (#144). BRK records each coin's price to four significant figures, so the coins recorded at the price's
+  own figure can sit either side of it, and BRK's own series, from each coin's exact price, can differ by up to those
+  coins: 0.62 points on 16 Jun 2022, 0.04 on an average day (129 days sampled). On that day the box prints 50.0% in
+  loss and lights the bottom signal, where BRK has 49.33% in loss. Showing BRK's own figure instead would undo #144.
 - The videos and the axis history were built while BRK's old API rounded prices more coarsely. The site now reads
   the finer buckets, so the days from 16 Aug 2010 to 30 Jan 2011 have small bars in % USD on the site that the USD
   videos, which start on 31 Jan 2011, do not show.
@@ -63,36 +107,40 @@ and each check's own count.
 
 | Check | Fails when |
 |---|---|
-| `draws` | an error notice, a script error, a failed data request (not a fetch ahead the page called off after 15 s), or the loading sign left up |
-| `right-day` | the title, the day counter or the data name another day, or the price is not BRK's close for the day |
-| `supply` | the day's coins differ from BRK's circulating supply (to a part in ten million) |
+| `draws` | an error notice, a script error, a failed request for anything but a day's data, or the loading sign left up |
+| `right-day` | the title, the day counter or the data name another day than the one asked for, or the price is not BRK's close for the day |
+| `right-block` | with 1B, the title or the counter names another block than the one asked for, the block's time is not BRK's on the visitor's own clock (date, hour, minute and the zone named), it is put on another day, or the price is not BRK's price at that block |
+| `supply` | the coins differ from BRK's circulating supply on the day or at the block (to a part in ten million) |
 | `realized-cap` | each coin at its price when last moved does not add up to BRK's realized cap (to 0.1 %) |
 | `holders` | the age bands under 150 days, or the rest, differ from BRK's short- or long-term holder supply |
-| `in-profit` | the price box's coins in profit is more than half a point from BRK's supply in profit |
+| `in-profit` | the price box's coins in profit are not the recorded prices at or below the price, or BRK's supply in profit is outside what those prices allow |
 | `bars-total` | the bars drawn add up to anything but 100 % of the day |
-| `labels-clear` | two boxes of words overlap, or one sits on the legend or title or leaves the window |
+| `labels-clear` | two boxes of words overlap, one sits on the legend or title or leaves the window, or the dot on the price line is over a box of figures |
 | `fits-window` | the page is wider than the window, or the toolbar wraps or scrolls |
-| `mark-box` | a marked range's box claims long-term holders where no coin last moved, or no coins where some did |
+| `mark-box` | a marked range's box claims long-term holders where no coin last moved, or no coins where some did, or its days never finish loading |
 | `mark-edges` | a marked range's white line covers part of a bar, where bars are 2 px or more apart and the chart leaves a gap between them |
+| `block-steps` | a press of a step button lands anywhere but where the page says it goes, the step size picked is not taken, or a notice comes up |
 | `empty-note` | a day with nothing to draw has no note saying why, or a day with bars has one |
 | `video-links` | a video menu link is not one of the four latest videos, or they end over 45 days ago |
 | `axis-history` | `data/scales.json` ends over 2 days ago |
 
-The data checks compare against Bitcoin Research Kit's own day series (`refs.mjs`), which BRK computes separately
-from the URPD buckets the site draws. They leave out the day in progress.
+The data checks compare against Bitcoin Research Kit's own series (`refs.mjs`), by day and, for a block, at its
+height, which BRK computes separately from the URPD buckets the site draws. They leave out the day in progress.
 
 ## Checking the checks
 
-`tests/evals.test.cjs` runs every check over labelled examples (`fixtures/labelled.json`): 14 real traces of the
-live site that review found good, and failures made from them that reproduce each one seen before, from a price two
-days behind to a box over the price box. Each check must pass every good example it applies to and fail every
-failure made for it, so a check that misses its failure, or flags a good chart, fails in the regression tests.
+`tests/evals.test.cjs` runs every check over labelled examples (`fixtures/labelled.json`): 35 real traces of the
+site that review found good (days and blocks, every window and language, five time zones, marked ranges, button
+presses), and 61 failures made from them that reproduce each one seen before, from a price two days behind to a
+block's time on the wrong clock. Each check must pass every good example it applies to and fail every failure made
+for it, and a made failure must fail no check but its own, so a check that misses its failure, flags a good chart
+or counts another check's fault fails in the regression tests. `fixtures/build.mjs` makes the file from a reviewed
+run.
 
-Running the checks on the 117 reviewed traces also checked them against the review. That run found two mistakes
-in the evals themselves, both fixed before they were trusted: the collector read the day's totals from a cache
-the page empties after ten days, so 15 traces of days drawn earlier read zero coins (fixed: it fetches them), and the
-in-profit check's first tolerance, 0.1 points, flagged 16 good traces (5 days) where BRK's buckets explain the difference
-(now half a point, above the largest seen, 0.31, and well below the 2.2-point error of #144).
+Running the checks on the reviewed traces also checks them against the review. The first time, that found two
+mistakes in the evals before they were trusted: the collector read the day's totals from a cache the page empties
+after ten days, so 15 traces of days drawn earlier read zero coins (fixed: it fetches them), and `in-profit`'s first
+tolerance, 0.1 points, flagged 16 good traces. The second time it found the five above.
 
 ## Running them
 
@@ -101,20 +149,26 @@ Once, in `evals/`: `npm ci --ignore-scripts` and `npx playwright install chromiu
 ```sh
 node evals/run.mjs                          # the daily sample, on https://www.bitcoinurpd.com/
 node evals/run.mjs --local                  # the same on this checkout, served on 127.0.0.1, before a merge
-node evals/run.mjs --plan review --shots    # all 117 traces, with screenshots, to review by eye
+node evals/run.mjs --plan review --shots    # all 161 traces, with screenshots, to review by eye
 node evals/run.mjs --traces evals/out/RUN/traces.json   # judge a run's traces again, after changing a check
+node evals/fixtures/build.mjs evals/out/RUN/traces.json t001,t124   # label reviewed traces as good examples
 ```
 
 Each run writes `traces.json`, `results.json` and `report.html` (every trace's screenshot and verdicts, failures
 first) to `evals/out/` and exits with 1 if anything failed. The Evals workflow (`.github/workflows/evals.yml`) runs
-the daily sample at 03:17 UTC; a red run emails the owner, and its traces and review page are kept for 30 days as the
-run's `evals` artifact. Run it by hand with plan `review` for the full set.
+the daily sample every day (set for 03:17 UTC; GitHub starts it some hours later); a red run emails the owner, and
+its traces and review page are kept for 30 days as the run's `evals` artifact. Run it by hand with plan `review` for
+the full set.
 
 ## Keeping them useful
 
 - Look at the traces again, with `--plan review --shots` and `report.html`, after any large change and every few
   months. Write down anything that makes the chart less useful, whoever's fault it is.
+- Read every red run before fixing anything: the site may be wrong, or the check. The four red runs of the first
+  thirteen days were two faults in the site and two in the evals.
 - Add a check only for a failure actually found, and a labelled example for it in `fixtures/labelled.json` with
   a failure made for it in `tests/evals.test.cjs`, and fix the site with a regression test of its own.
+- When the chart gains something a visitor can do, add traces of it to the plan in the same pull request. 1B went
+  two weeks with none.
 - These checks are exact, so a daily run is expected to pass in full; a failure is a fault to fix. A check that has
   not failed in months on new days is a candidate to run less often or retire.

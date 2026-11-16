@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-IVlBK/0t//qBw0g5dMqqhxVt2fCKYjMlyGc1/TmoJTE=' 'sha256-WAYYLiMHaRnZXEEoqB9iUdGgLN5BFGxjOUF+U7cx+PY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-RXxKLGg//fjYHENcuqb3VwxAfqtNM/7jSQplnHzs/NE=' 'sha256-WAYYLiMHaRnZXEEoqB9iUdGgLN5BFGxjOUF+U7cx+PY=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -946,6 +946,14 @@ function plotWidthPx() {
   if (fl && fl.xaxis && fl.xaxis._length > 0 && fl.width && Math.abs(fl.width - gd.clientWidth) < 1) return fl.xaxis._length;
   return Math.max(200, (gd.clientWidth || 1200) - 160);
 }
+// How much smaller the figure is drawn than it is laid out: 1 on a desktop, and on a phone the scale its 2000 px
+// figure is fitted to the screen with (--fit, set at the top of the page). The dot on the price line keeps its size on
+// the screen (#tracer), so on a phone it covers that many times more of the figure.
+function figureFit() {
+  if (!window.__PHONE || !window.getComputedStyle) return 1;
+  var fit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit"));
+  return fit > 0 ? fit : 1;
+}
 // The plot's left edge on the page in CSS px, as the chart was last drawn: where device pixels are counted from.
 function plotPageLeft() {
   var gd = document.getElementById("chart"), fl = gd && gd._fullLayout;
@@ -1543,8 +1551,9 @@ function markTextPx(str, size) { var w = 0; for (var i = 0; i < str.length; i++)
 // there is a long-term holder (see daysToAllLth). Over a range where no coin last moved it gives the range and that none
 // did (No BTC Last Moved Here; see coinsIn). A box too tall for the plot drops lines, the range and the days last (see
 // place below); a mark too narrow for the words keeps the number of days alone, on less padding; one too narrow even for
-// that: null. It drops below the price box and the top-left labels where it would meet them. Returns the rows (HTML),
-// the font size, padding, inset, the width for the text and how far down from the top of the plot the box sits.
+// that: null. It drops below the price box and the top-left labels where it would meet them, and keeps clear of a cycle
+// top's or bottom's label under the mark. Returns the rows (HTML), the font size, padding, inset, the width for the text
+// and how far down from the top of the plot the box sits.
 function markBoxLayout(data, lo, hi, ctx) {
   var price = function(v) { return v.toLocaleString("en-US", {maximumFractionDigits: v < 10 ? 2 : 0}); };
   var none = !coinsIn(data, lo, hi);
@@ -1593,7 +1602,8 @@ function markBoxLayout(data, lo, hi, ctx) {
   var sb = ctx.spotBox;
   if (sb && x0 < sb.x1 && x1 > sb.x0) y0 = Math.max(y0, (sb.y0 || 0) + sb.h + 6);
   var outer = (hi - lo) / ctx.xSpan * ctx.plotPx - 2 * inset;
-  var maxH = ctx.plotH > 0 ? ctx.plotH - y0 - 2 * inset : Infinity;
+  // How far down the box may reach: the plot's height, less where it has to stop above something (see fit below).
+  var floor = ctx.plotH > 0 ? ctx.plotH : Infinity, maxH = floor - y0 - 2 * inset;
   // The largest size from 13 px down to 9 at which every word fits the width and the box the plot's height below its
   // top. Tried in turn: every line; the age bands in short; the range, its share and the days; the range and the days;
   // the days line alone; the number of days alone, on less padding. One too narrow even for that: null.
@@ -1619,8 +1629,27 @@ function markBoxLayout(data, lo, hi, ctx) {
   if (detail.length) tries.push([range].concat(shares, [allLth]));
   if (shares.length) tries.push([range, allLth]);
   tries.push([allLth]);
-  for (var i = 0; i < tries.length; i++) { var placed = place(tries[i], pad); if (placed) return placed; }
-  return place([brief], 1);
+  var fit = function() {
+    maxH = floor - y0 - 2 * inset;
+    for (var i = 0; i < tries.length; i++) { var placed = place(tries[i], pad); if (placed) return placed; }
+    return place([brief], 1);
+  };
+  // What else sits under the mark and must stay readable (ctx.labels): a cycle top's or bottom's label on the price
+  // line, with its marker, and the dot on the selected day, which is drawn over everything. Where the box would reach
+  // one, it starts below it or ends above it, whichever leaves it more room. (With its figures back the box covered
+  // Cycle 5 Top on 27 Dec 2025 and Cycle 2 Top on 9 Mar 2014, which the daily evals found, and the dot hid letters of
+  // a tall box on 20 Jan 2022.)
+  var under = (ctx.labels || []).filter(function(k) { return x0 < k.x1 && x1 > k.x0; }), box = fit();
+  for (var n = 0; n < under.length && box; n++) {
+    var hit = null;
+    for (var j = 0; j < under.length && !hit; j++) if (under[j].y1 > y0 && under[j].y0 < floor && under[j].y0 - 4 < y0 + box.h + 2 * inset) hit = under[j];
+    if (!hit) break;
+    var was = floor;
+    if (hit.y0 - y0 >= floor - hit.y1) floor = hit.y0 - 4; else y0 = hit.y1 + 4;
+    box = fit();
+    if (!box && floor !== was) { floor = was; y0 = hit.y1 + 4; box = fit(); }   // no room above it after all: below
+  }
+  return box;
 }
 // The first day with a BTC/USD close above zero (16 Aug 2010 in BRK's series), found once the closes are in; "" if none.
 var firstClose = null;
@@ -1781,7 +1810,15 @@ function fetchRaw(dateStr) {
   var p = (raw.age ? Promise.resolve(raw.age) : Promise.all(AGE_BANDS.map(function(band, ci) {
       if (raw.cohorts[ci]) return raw.cohorts[ci];
       if (height === null && !isDateString(dateStr)) return Promise.reject(pageError(function() { return t("errNotDate") + dateStr; }));
-      var cohortPromise = fetchJSON(urpdUrl(band.cohort, dateStr)).then(function(v) {
+      // One request left without an answer (it timed out, or the connection dropped, or the server answered 5xx) while
+      // the day's others were answered is asked once more: on 14 Nov 2026 one of a day's 23 hung past the 15 s limit
+      // and the whole day was an error to try again by hand. With no answer to any of them the API is down, and asking
+      // again would only double the wait for the notice. A 4xx is an answer (a block not published yet is a 404).
+      var cohortPromise = fetchJSON(urpdUrl(band.cohort, dateStr)).catch(function(e) {
+        var answered = raw.cohorts.some(function(c) { return c && typeof c.then !== "function"; });
+        if (!answered || /HTTP 4\d\d/.test(String(e && e.message))) throw e;
+        return fetchJSON(urpdUrl(band.cohort, dateStr));
+      }).then(function(v) {
         var c = cleanUrpdAt(v, dateStr);
         raw.metas[ci] = urpdMeta(v);
         return c;
@@ -2259,31 +2296,14 @@ function drawChart(data, plotSeq, navigationSeq) {
   // days until every coin there is a long-term holder (see markBoxLayout). It drops below the price box and the top-left
   // labels where it would meet them.
   // What the box needs from this drawing (and the live box while dragging, see attachRangeMarking): the axis span,
-  // the plot's width, the mode, and the price box and top-left labels it stays clear of.
+  // the plot's width, the mode, and the price box, top-left labels and cycle labels it stays clear of. The mark itself
+  // is drawn further down, once the cycle labels are placed.
   var gdMark = document.getElementById("chart"), flMark = gdMark && gdMark._fullLayout;
   var markGeom = { binWidth: binWidth, xSpan: xSpan, plotW: plotW, pitch: pitch, barW: barW, left: plotPageLeft() };
   var markContext = { xSpan: xSpan, plotPx: Math.max(200, plotWidthPx()), isCoin: isCoin, isSplit: isSplit, geom: markGeom,
-    spotBox: spotBox, topLeft: topLeft, hp: hp, data: data,
+    spotBox: spotBox, topLeft: topLeft, labels: [], hp: hp, data: data,
     plotH: flMark && flMark.yaxis && flMark.yaxis._length > 0 ? flMark.yaxis._length : Math.max(200, ((gdMark && gdMark.clientHeight) || 760) - 160) };
   lastMarkContext = markContext;
-  if (rangeMark && !IS_MOBILE) {
-    var mLo = Math.max(0, rangeMark.lo), mHi = Math.min(xSpan, rangeMark.hi);
-    if (mHi > mLo) {
-      // Each white line in the pixel column between two bars (see markBandPx), the tint from one to the other, the box
-      // from the low one.
-      var mPx = markBandPx(mLo, mHi, markGeom), pxToX = function(px) { return px / plotW * xSpan; };
-      var mMid = function(e) { return pxToX(e.x + e.w / 2); };
-      shapes.push({type:"rect",xref:"x",yref:"paper",x0:mMid(mPx.lo),x1:mMid(mPx.hi),y0:0,y1:1,line:{width:0},fillcolor:MARK_TINT,layer:"below"});
-      [mPx.lo, mPx.hi].forEach(function(e) {
-        shapes.push({type:"line",xref:"x",x0:mMid(e),x1:mMid(e),yref:"paper",y0:0,y1:1,line:{color:MARK_EDGE,width:e.w},layer:"above"});
-      });
-      var mb = markBoxLayout(data, mLo, mHi, markContext);
-      if (mb) annotations.push({xref:"x",x:pxToX(mPx.lo.x),xanchor:"left",xshift:mb.inset,yref:"paper",y:1,yanchor:"top",yshift:-(mb.y0 + mb.inset),
-        width:mb.textW,text:mb.rows.join("<br>"),showarrow:false,align:"left",font:{color:TH.ink,size:mb.size,family:FONT},
-        bgcolor:TH.boxBg,bordercolor:TH.boxBorder,borderwidth:1,borderpad:mb.pad});
-    }
-  }
-
   var yAxisTitle = isCoin ? t("btcSupply") : t("usdInvested");
 
   // ---- Header -------------------------------------------------------------------------------------
@@ -2344,12 +2364,15 @@ function drawChart(data, plotSeq, navigationSeq) {
     if(showPriceOverlay&&spot&&spot>0){traces.push({x:[data.dotX||dateStr],y:[spot],type:"scatter",mode:"markers",xaxis:"x2",yaxis:"y3",marker:{color:"#ff8c00",size:9,line:{color:"rgba(255,140,0,0.7)",width:1.5}},hoverinfo:"skip",showlegend:false});}
     // Near a high the dot on the selected day and the spot price box both sit at the top right, and the dot hid
     // letters of the box. The box then takes the other side of its line if the dot is clear of it there, and
-    // otherwise moves down to just below the dot. Plot fractions across, pixels down from the top.
+    // otherwise moves down to just below the dot. Plot fractions across, pixels down from the top. (On a phone the
+    // dot is as large on the screen as on a desktop and the figure about a fifth the size, so it reaches that much
+    // further over the figure: until November 2026 it was allowed its desktop 9 px there and covered the box's last
+    // line, 20 Apr 2024 in USD by age.)
     if(showPriceOverlay&&spotAnn&&spotBox&&spot>0){
       var sbTop=priceRunMax(dayIndex(rStr)), sbW=Math.max(200,plotWidthPx());
       var sbH=Math.max(150,(document.getElementById("chart").clientHeight||700)-topMargin-bottomMargin);
       if(sbTop>0){
-        var sbDotF=(ovSel-ovLeft)/(ovRight-ovLeft), sbDotY=(1-spot/sbTop)*sbH, sbR=9;
+        var sbDotF=(ovSel-ovLeft)/(ovRight-ovLeft), sbDotY=(1-spot/sbTop)*sbH, sbR=9/figureFit();
         var sbHits=function(b){return sbDotF+sbR/sbW>b.x0&&sbDotF-sbR/sbW<b.x1&&sbDotY-sbR<(b.y0||0)+b.h&&sbDotY+sbR>(b.y0||0);};
         if(sbHits(spotBox)){
           var sbWF=spotBox.x1-spotBox.x0, sbX=spot/xSpan, sbGap=6/sbW;
@@ -2409,7 +2432,7 @@ function drawChart(data, plotSeq, navigationSeq) {
       if(spotBox)lmBlocks.push({x0:spotBox.x0,x1:spotBox.x1,y0:spotBox.y0||0,y1:(spotBox.y0||0)+spotBox.h});
       if(cut)lmBlocks.push({x0:0,x1:(textPx(cutText,11)+8)/lmW,y0:0,y1:(peakVal>0?44:23)});
       if(peakVal>0)lmBlocks.push({x0:0,x1:(textPx(peakText,11)+12)/lmW,y0:0,y1:21});
-      if(spot>0&&lmTop>0){var dotF=(ovSel-ovLeft)/(ovRight-ovLeft),dotY=(1-spot/lmTop)*lmH;lmBlocks.push({x0:dotF-8/lmW,x1:dotF+8/lmW,y0:dotY-8,y1:dotY+8});}
+      if(spot>0&&lmTop>0){var dotF=(ovSel-ovLeft)/(ovRight-ovLeft),dotY=(1-spot/lmTop)*lmH,dotR=8/figureFit();lmBlocks.push({x0:dotF-dotR/lmW,x1:dotF+dotR/lmW,y0:dotY-dotR,y1:dotY+dotR});}
       lmD.forEach(function(ld,i){
         var f=(new Date(ld+"T00:00:00Z").getTime()-ovLeft)/(ovRight-ovLeft), top=lmS[i]==="triangle-down";
         var wF=(textPx(lmT[i],11)+8)/lmW, gF=8/lmW, yPx=lmTop>0?(1-lmP[i]/lmTop)*lmH:0, yTop=top?yPx:yPx+8;
@@ -2423,6 +2446,9 @@ function drawChart(data, plotSeq, navigationSeq) {
         // First in the list, so if the estimate above is a few pixels out, the box's figures stay on top.
         annotations.unshift({x:ld,y:lmP[i],xref:"x2",yref:"y3",text:lmT[i],showarrow:false,xanchor:side,yanchor:"top",
           xshift:side==="left"?8:side==="right"?-8:0,yshift:-(y-yPx),font:{color:lmC[i],size:11,family:FONT},bgcolor:TH.labelBg,borderpad:2});
+        // Where it and its marker sit, for a marked range's box to keep clear of (see markBoxLayout).
+        var lsp=span(side);
+        markContext.labels.push({x0:Math.min(lsp[0],f-7/lmW),x1:Math.max(lsp[1],f+7/lmW),y0:Math.min(y,yPx-7),y1:Math.max(y+19,yPx+7)});
       });
     }
     // The price line's own axes do not zoom either.
@@ -2433,7 +2459,33 @@ function drawChart(data, plotSeq, navigationSeq) {
     layout.yaxis3={overlaying:"y",showticklabels:false,showgrid:false,type:"linear",visible:false,fixedrange:true};
     var ovTop=priceRunMax(dayIndex(rStr));
     if(ovTop>0){layout.yaxis3.autorange=false;layout.yaxis3.range=[0,ovTop];}
+    // The dot on the selected day (#tracer) is drawn over everything: a marked range's box keeps clear of it too.
+    if(showPriceOverlay&&spot>0&&ovTop>0){
+      var mkW=Math.max(200,plotWidthPx()),mkF=(ovSel-ovLeft)/(ovRight-ovLeft),mkY=(1-spot/ovTop)*markContext.plotH;
+      markContext.labels.push({x0:mkF-11/mkW,x1:mkF+11/mkW,y0:mkY-10,y1:mkY+10,dot:true});
+    }
   }
+  // The marked range, now that the price box has its final place (it may have moved clear of the dot above) and the
+  // cycle labels are placed.
+  markContext.spotBox = spotBox;
+  if (rangeMark && !IS_MOBILE) {
+    var mLo = Math.max(0, rangeMark.lo), mHi = Math.min(xSpan, rangeMark.hi);
+    if (mHi > mLo) {
+      // Each white line in the pixel column between two bars (see markBandPx), the tint from one to the other, the box
+      // from the low one.
+      var mPx = markBandPx(mLo, mHi, markGeom), pxToX = function(px) { return px / plotW * xSpan; };
+      var mMid = function(e) { return pxToX(e.x + e.w / 2); };
+      shapes.push({type:"rect",xref:"x",yref:"paper",x0:mMid(mPx.lo),x1:mMid(mPx.hi),y0:0,y1:1,line:{width:0},fillcolor:MARK_TINT,layer:"below"});
+      [mPx.lo, mPx.hi].forEach(function(e) {
+        shapes.push({type:"line",xref:"x",x0:mMid(e),x1:mMid(e),yref:"paper",y0:0,y1:1,line:{color:MARK_EDGE,width:e.w},layer:"above"});
+      });
+      var mb = markBoxLayout(data, mLo, mHi, markContext);
+      if (mb) annotations.push({xref:"x",x:pxToX(mPx.lo.x),xanchor:"left",xshift:mb.inset,yref:"paper",y:1,yanchor:"top",yshift:-(mb.y0 + mb.inset),
+        width:mb.textW,text:mb.rows.join("<br>"),showarrow:false,align:"left",font:{color:TH.ink,size:mb.size,family:FONT},
+        bgcolor:TH.boxBg,bordercolor:TH.boxBorder,borderwidth:1,borderpad:mb.pad});
+    }
+  }
+
   // Legend toggles live on the trace objects and every draw builds those objects afresh, so anything hidden
   // would reappear the moment the chart redrew - changing date, or clicking BTC/USD, which is intercepted
   // below and redraws everything. Carry the hidden state across by trace name.
