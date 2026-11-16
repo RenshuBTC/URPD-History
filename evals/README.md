@@ -66,7 +66,7 @@ grouped and counted as before.
 | With 1B the chart shows another block, or its time on another clock, day or price | 0 of 34 blocks | — | `right-block` (new) | checked daily |
 | A step button does not move as it says: 1B a block at a time, 1D from a block to the end of its day, nothing past the newest block | 0 of 8 runs | — | `block-steps` (new) | checked daily |
 
-The same reading found five mistakes in the evals themselves, the kind the FAQ warns of: a check nobody has checked
+The same reading found six mistakes in the evals themselves, the kind the FAQ warns of: a check nobody has checked
 is only an opinion.
 
 - `in-profit` allowed half a point between the price box and BRK's own figure, a guess made from the largest
@@ -83,6 +83,11 @@ is only an opinion.
   `mark-box` fails a box still loading after 20 s.
 - The collector waited 240 s on a page that had already said it could not load. It now stops once the notice has
   stood, tries once more after 20 s, and a trace that drew only at its second try is named in the run's output.
+- The collector never saw the page's notice at all. It asked whether the notice had an `offsetParent`, which an
+  element fixed to the window never has, shown or not. So the `draws` check's notice clause passed its made failures
+  and could not fire on a real trace, and the fix above did nothing: in the first review of the live site after it,
+  two blocks whose data BRK did not send in 30 s were still waited out for 240 s each (both drew at the second try).
+  Found by reading that green run's "drew at the second try" lines. It now asks whether the notice is displayed.
 
 Noted, with no check, because each is a choice for the owner rather than a fault:
 
@@ -140,7 +145,9 @@ run.
 Running the checks on the reviewed traces also checks them against the review. The first time, that found two
 mistakes in the evals before they were trusted: the collector read the day's totals from a cache the page empties
 after ten days, so 15 traces of days drawn earlier read zero coins (fixed: it fetches them), and `in-profit`'s first
-tolerance, 0.1 points, flagged 16 good traces. The second time it found the five above.
+tolerance, 0.1 points, flagged 16 good traces. The second time it found the six above. One of them no labelled
+example could have found: the checks only see what the collector records, so a run's own output is read too, green
+or not.
 
 ## Running them
 
@@ -166,6 +173,8 @@ the full set.
   months. Write down anything that makes the chart less useful, whoever's fault it is.
 - Read every red run before fixing anything: the site may be wrong, or the check. The four red runs of the first
   thirteen days were two faults in the site and two in the evals.
+- Read the green runs' output as well. "Drew at the second try" on two traces of a passing run was the collector
+  missing every notice the page had ever shown.
 - Add a check only for a failure actually found, and a labelled example for it in `fixtures/labelled.json` with
   a failure made for it in `tests/evals.test.cjs`, and fix the site with a regression test of its own.
 - When the chart gains something a visitor can do, add traces of it to the plan in the same pull request. 1B went

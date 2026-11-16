@@ -58,6 +58,29 @@ test('startup publishes dates only after price initialization settles', async ()
   assert.ok(Math.abs(c.lastRenderedData.redPct - 200 / 3) < 1e-10);
 });
 
+test('the list of days left unanswered at first is asked once more before the page gives up; a 4xx is an answer', async () => {
+  // 17 Nov 2026: the first request of a visit hung past the 15 s limit and the page was dead until reloaded.
+  const run = async (failures) => {   // how the request for each day's first block fails, try by try
+    const { c, element } = app(); let asked = 0;
+    c.fetchJSON = url => {
+      if (url.endsWith('/first_height/day1')) { const why = failures[asked++]; return why ? Promise.reject(new Error(why)) : Promise.resolve([0, 0, 0]); }
+      if (url.endsWith('/price_close/day1')) return Promise.resolve([1, 1, 10]);
+      if (url.endsWith('/date/day1')) return Promise.resolve(['2009-01-01', '2009-01-02', '2009-01-03']);
+      return Promise.resolve(/\.json$/.test(url) ? null : { 5: 2, 20: 1 });
+    };
+    await c.init();
+    return { asked, days: c.allDates.length, notice: element('status').style.display === 'block' ? element('status').textContent : '', T: c.T.en };
+  };
+  let r = await run(['Request timed out after 15 seconds']);
+  assert.deepEqual([r.asked, r.days, r.notice], [2, 1, ''], 'timed out once: asked again, and the page starts');
+  r = await run(['HTTP 503']);
+  assert.deepEqual([r.asked, r.days, r.notice], [2, 1, ''], 'a server error once');
+  r = await run(['Request timed out after 15 seconds', 'Failed to fetch']);
+  assert.deepEqual([r.asked, r.days, r.notice], [2, 0, r.T.errBRK], 'twice: the page says it could not reach the API, and asks no third time');
+  r = await run(['HTTP 404', 'never asked']);
+  assert.deepEqual([r.asked, r.days, r.notice], [1, 0, r.T.errBRK], 'a 4xx is an answer');
+});
+
 test('UTC price fallback agrees with date indices across DST boundaries', () => {
   const oldTZ = process.env.TZ;
   try {

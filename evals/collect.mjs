@@ -95,8 +95,8 @@ function pageFacts() {
     settings: { bins: NUM_BINS, smoothing: KERNEL_PCT, ymax: yMaxPct }, mark: window.rangeMark ? { lo: rangeMark.lo, hi: rangeMark.hi } : null, coinsInMark, markEdges, inProfit,
     raw: { ...sum(raw.all), bands: ages.length, sth: ages.slice(0, STH_BANDS).reduce((a, b) => a + b.supply, 0), lth: ages.slice(STH_BANDS).reduce((a, b) => a + b.supply, 0) },
     title: strip(L.title && L.title.text), counter: document.getElementById("dateDisplay").textContent, dayNumber: allDates.indexOf(d.dateStr) + 1, days: allDates.length,
-    notice: status && status.offsetParent && status.textContent.trim() ? status.textContent.trim() : "",
-    loading: document.getElementById("loading").style.display !== "none",
+    notice: status && getComputedStyle(status).display !== "none" && status.textContent.trim() ? status.textContent.trim() : "",
+    loading: getComputedStyle(document.getElementById("loading")).display !== "none",
     xRange: L.xaxis && L.xaxis.range, yRange: L.yaxis && L.yaxis.range, bars, annotations: anns,
     legend: box(gd.querySelector("g.legend")), titleBox: box(gd.querySelector(".g-gtitle text") || gd.querySelector(".gtitle")),
     // The dot on the selected day: a page element over the chart, so it hides whatever it sits on.
@@ -114,6 +114,11 @@ function pageFacts() {
 // the site's Content-Security-Policy refuses (no 'unsafe-eval'), and the evals load the page with its policy on, as a
 // visitor does, so a broken policy fails them. A draw the page gave up on is not waited out: once it puts up a notice
 // (its own word for what went wrong) with nothing left loading, that notice is the error.
+//   The notice is fixed to the window, so it has no offsetParent whether it shows or not. Until 17 Nov 2026 that was the
+// test here and in the facts, and no notice was ever seen: a draw the page had given up on was waited out for 240 s,
+// and the draws check's notice could never fire on a real trace. What tells is whether it is displayed (the page shows
+// it for 6 s over the chart it has kept, or leaves it up when there is no chart). The loading sign is read the same
+// way: before the page has ever shown it, its own style says nothing and the stylesheet hides it.
 async function until(page, fn, arg, timeout = 240000) {
   const end = Date.now() + timeout;
   let noticeSince = 0;
@@ -121,7 +126,7 @@ async function until(page, fn, arg, timeout = 240000) {
     if (await page.evaluate(fn, arg).catch(() => false)) return;
     const notice = await page.evaluate(() => {
       const s = document.getElementById("status"), l = document.getElementById("loading");
-      return s && s.offsetParent && s.textContent.trim() && l && l.style.display === "none" && !window.navTimer ? s.textContent.trim() : "";
+      return s && getComputedStyle(s).display !== "none" && s.textContent.trim() && l && getComputedStyle(l).display === "none" && !window.navTimer ? s.textContent.trim() : "";
     }).catch(() => "");
     if (notice) { noticeSince = noticeSince || Date.now(); if (Date.now() - noticeSince > 2500) throw new Error("the page gave up: " + notice.slice(0, 200)); }
     else noticeSince = 0;
@@ -133,14 +138,14 @@ async function until(page, fn, arg, timeout = 240000) {
 // The chart has drawn `key` (a day's date, or "h" and a block's height) and is at rest.
 async function settled(page, key) {
   await until(page, (k) => !!(window.lastRenderedData && (lastRenderedData.key || lastRenderedData.dateStr) === k &&
-    document.getElementById("loading").style.display === "none"), key);
+    getComputedStyle(document.getElementById("loading")).display === "none"), key);
   for (let i = 0; i < 3; i++) { await page.evaluate(() => chartRenderPromise); await page.waitForTimeout(350); }
 }
 // After a press of a toolbar button: whatever it started (a debounced step, a draw, a look for a newer block) is done.
 async function atRest(page) {
   await page.waitForTimeout(200);
   await until(page, () => !window.navTimer && !window.tipCheck && !Object.keys(window.rawInflight || {}).some((k) => k === currentKey() + modeKey()) &&
-    document.getElementById("loading").style.display === "none", null, 120000);
+    getComputedStyle(document.getElementById("loading")).display === "none", null, 120000);
   for (let i = 0; i < 3; i++) { await page.evaluate(() => chartRenderPromise); await page.waitForTimeout(300); }
 }
 
@@ -236,7 +241,7 @@ export async function collect(plan, { site, outDir, shots = false, log = console
           height: lastRenderedData.height, isBlock: !!lastRenderedData.isBlock, last: dayLastHeight(allDates.indexOf(lastRenderedData.dateStr)),
           first: dayFirstHeight[allDates.indexOf(lastRenderedData.dateStr)], nextFirst: dayFirstHeight[allDates.indexOf(lastRenderedData.dateStr) + 1],
           stepSize: (document.querySelector("#intervalBar .iv.active") || {}).textContent, newest: newestHeight,
-          notice: (() => { const s = document.getElementById("status"); return s && s.offsetParent ? s.textContent.trim() : ""; })() }))) });
+          notice: (() => { const s = document.getElementById("status"); return s && getComputedStyle(s).display !== "none" ? s.textContent.trim() : ""; })() }))) });
       }
       key = stepped[stepped.length - 1].key;
     }
@@ -262,14 +267,18 @@ export async function collect(plan, { site, outDir, shots = false, log = console
   }
   for (const tr of plan.traces) {
     const started = Date.now(), shot = shots ? path.join("shots", tr.id + ".png") : null;
-    let P;
-    try { P = await pageFor(tr.window, tr.tz); }
-    catch (e) { traces.push({ ...tr, error: "the page did not load: " + String(e.message || e).slice(0, 300) }); log(tr.id, "the page did not load"); continue; }
+    // A page that does not come up is opened once more after 20 s, as a draw is tried once more below.
+    let P, opened = null;
+    for (let attempt = 1; attempt <= 2 && !P; attempt++) {
+      try { P = await pageFor(tr.window, tr.tz); }
+      catch (e) { opened = String(e.message || e).slice(0, 300); log(tr.id, "the page did not load:", opened.slice(0, 160)); if (attempt === 1) await new Promise((res) => setTimeout(res, 20000)); }
+    }
+    if (!P) { traces.push({ ...tr, error: "the page did not load: " + opened, tries: 2 }); continue; }
     // A draw that fails is tried once more after 20 s: a single request to BRK that hangs (14 Nov 2026: one of a
     // day's 23 took over 15 s, once in two weeks of runs) should not read as the site being down. The first try's
     // error is kept on the trace either way, and a trace that needed its second try is reported.
-    let firstError = null;
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    let firstError = opened ? "the page did not load: " + opened : null;
+    for (let attempt = opened ? 2 : 1; attempt <= 2; attempt++) {
       try {
         const got = await draw(tr, P, shot);
         traces.push({ ...tr, ...got, ms: Date.now() - started, firstLoadMs: P.firstLoadMs, shot, tries: attempt, firstError });
