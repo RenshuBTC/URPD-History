@@ -21,8 +21,11 @@ function page({ W = 1498, bins = 625, dpr = 1, split = false } = {}) {
     Plotly: { react(id, traces, layout, config) {
       const gd = ctx.document.getElementById(id), [a, b] = layout.xaxis.range;
       Object.assign(gd, { data: traces, layout, config });
+      // The plot's left edge moves in by h.shiftFor(layout) px (none unless a test sets it), as Plotly's own margin for
+      // the left axis's labels moves it when they get longer; its right edge stays.
+      const shift = h.shiftFor ? h.shiftFor(layout) : 0, len = h.W - shift;
       gd._fullLayout = { width: h.W + 160, legend: { _height: 29 }, yaxis: { _length: 700, _offset: 0 },
-        xaxis: { _length: h.W, _offset: 0, p2d: p => a + p / h.W * (b - a), l2p: v => (v - a) / (b - a) * h.W } };
+        xaxis: { _length: len, _offset: shift, p2d: p => a + p / len * (b - a), l2p: v => (v - a) / (b - a) * len } };
       h.draws++;
       return Promise.resolve();
     } },
@@ -224,6 +227,158 @@ test('the wheel zooms the price axis about the price under the pointer, in and o
   c.priceView = null; await h.draw();
   h.wheel(700, -99); await h.frame();
   assert.equal(gd.layout.xaxis.range[1] - gd.layout.xaxis.range[0], lines);
+});
+
+test('a run of the wheel holds one price under the pointer, half a bar from it at most however many turns are drawn', async () => {
+  // 17 Nov 2026, in Chromium on the live page: sixteen notches at 80% of the way across, each drawn, left the price
+  // under the pointer 2.8 bars from where it began (120 px, with 35 bars in view), and 5.6 by the time the wheel had been
+  // turned back. Every turn read the price off the bars just drawn, so each drawing's rounding to whole bars was added to
+  // the last one's. (The test above allowed a bar a notch and started again from each drawing, so it never saw the sum.)
+  for (const x of [1198, 464, 105, 749]) {
+    const h = page(), { gd } = h;
+    await h.draw();
+    const w = h.data.binWidth, W = h.W, full = gd.layout.xaxis.range[1];
+    const priceAt = () => { const [a, b] = gd.layout.xaxis.range; return a + x / W * (b - a); };
+    const start = priceAt();
+    for (let i = 0; i < 16; i++) {
+      h.wheel(x, -100); await h.frame();
+      assert.ok(Math.abs(priceAt() - start) <= w / 2 + 1e-6, `${i + 1} notches in at ${x} px: ${(priceAt() - start) / w} bars off`);
+    }
+    assert.ok((gd.layout.xaxis.range[1] - gd.layout.xaxis.range[0]) / w < 60, 'sixteen notches in');
+    // Turned back, for as long as the view is clear of both ends of the axis (against one, it can only stop there).
+    for (let i = 0; i < 16; i++) {
+      h.wheel(x, 100); await h.frame();
+      const [a, b] = gd.layout.xaxis.range;
+      if (a === 0 || b > full - w / 2) break;
+      assert.ok(Math.abs(priceAt() - start) <= w / 2 + 1e-6, `${i + 1} notches back out at ${x} px: ${(priceAt() - start) / w} bars off`);
+    }
+  }
+});
+
+test('the wheel holds the price now under the pointer once the pointer or the view has moved, and adds up nothing while it turns both ways', async () => {
+  const h = page(), { c, gd } = h;
+  await h.draw();
+  const w = h.data.binWidth, W = h.W;
+  const priceAt = x => { const [a, b] = gd.layout.xaxis.range; return a + x / W * (b - a); };
+  const held = async (x, turns, dy, what) => {
+    const start = priceAt(x);
+    for (let i = 0; i < turns; i++) { h.wheel(x, dy); await h.frame(); assert.ok(Math.abs(priceAt(x) - start) <= w / 2 + 1e-6, `${what}, turn ${i + 1}: ${(priceAt(x) - start) / w} bars off`); }
+  };
+  await held(900, 5, -100, 'zooming in at 900 px');
+  // The pointer goes elsewhere: the price it is now over is the one that stays.
+  await held(300, 5, -100, 'then at 300 px');
+  // The view is dragged along: the wheel reads the price off the bars as they now stand.
+  h.down(600); h.move(700); h.move(1100); await h.frame(); h.up(); await h.frame();
+  await held(300, 4, 100, 'after a drag');
+  // A day that had to slide the view back inside its axis shows other prices than were asked for: those are held.
+  const full = Math.ceil(gd.layout.xaxis.range[1] / w) * w;
+  c.priceView = { lo: 200000, hi: 212000 };
+  await h.draw();
+  assert.ok(gd.layout.xaxis.range[1] < 200000, 'the view was slid inside the axis');
+  await held(700, 3, -100, 'on a view slid inside the axis');
+  // A touchpad turns both ways at once, and a little at a time. Each turn zooms about the pointer and carries the price
+  // under it sideways by the turn's own distance, at the scale the view then has: after forty of them it is that sum
+  // from where it began, to half a bar, with no drawing's rounding added in.
+  c.priceView = { lo: 30000, hi: 60000 };
+  await h.draw();
+  const start = priceAt(700);
+  let carried = 0;
+  for (let i = 0; i < 40; i++) {
+    const dx = i % 2 ? -37 : 37;
+    h.wheel(700, -9, { deltaX: dx }); await h.frame();
+    carried += dx / W * (c.priceView.hi - c.priceView.lo);
+    assert.ok(Math.abs(priceAt(700) - (start + carried)) <= w / 2 + 1e-6, `turn ${i + 1} both ways: ${(priceAt(700) - start - carried) / w} bars off`);
+  }
+  // Sideways alone moves the price under the pointer with the bars, and a turn after it holds that one, to the bar.
+  h.wheel(700, 0, { deltaX: 120 }); await h.frame();
+  const moved = priceAt(700);
+  assert.ok(moved > start + w, 'moved to higher prices');
+  h.wheel(700, -100); await h.frame();
+  assert.ok(Math.abs(priceAt(700) - moved) <= w + 1e-6, `after a sideways turn: ${(priceAt(700) - moved) / w} bars off`);
+  assert.ok(full > 0);
+});
+
+test('the left button keeps the price it went down on under the pointer, half a bar from it at most, wherever it is dragged', async () => {
+  const h = page(), { c, gd } = h;
+  c.priceView = { lo: 20000, hi: 52000 };
+  await h.draw();
+  const w = h.data.binWidth, W = h.W;
+  const priceAt = x => { const [a, b] = gd.layout.xaxis.range; return a + x / W * (b - a); };
+  const start = priceAt(640);
+  h.down(640);
+  for (const x of [643, 644, 655, 700, 913, 1204, 1100, 700, 431, 388, 120, 640]) {
+    h.move(x); await h.frame();
+    if (Math.abs(x - 640) < 4 && !h.classes.has('panning')) continue;   // not yet a drag
+    assert.ok(Math.abs(priceAt(x) - start) <= w / 2 + 1e-6, `dragged to ${x} px: ${(priceAt(x) - start) / w} bars off`);
+  }
+  h.up(); await h.frame();
+  // A turn of the wheel where the drag ended goes on holding the same price.
+  for (let i = 0; i < 6; i++) { h.wheel(640, -100); await h.frame(); assert.ok(Math.abs(priceAt(640) - start) <= w / 2 + 1e-6, `then ${i + 1} notches in: ${(priceAt(640) - start) / w} bars off`); }
+  // Dragged out of the plot, the axis goes on moving with the pointer, to its end.
+  h.down(640); h.move(640 + 3 * W); await h.frame();
+  assert.equal(gd.layout.xaxis.range[0], 0);
+  h.up(); await h.frame();
+});
+
+test('when the plot itself moves under the pointer, the price held there is put back: the left axis\'s labels change width as a zoom changes where it ends', async () => {
+  // In Chromium the plot's left edge sat 74 px in with the whole axis and 67 px in on a zoomed view whose left axis had
+  // shorter labels (17 Nov 2026): the bars moved 7 px with it, 1.5 bars where 305 were in view. The stub moves the plot
+  // 7 px in whenever the left axis ends below the heap at $40,000, which leaves the view on the way in.
+  const h = page(), { c, gd } = h;
+  await h.draw();
+  const w = h.data.binWidth, wholeTop = gd.layout.yaxis.range[1];
+  h.shiftFor = (layout) => (layout.yaxis.range[1] < wholeTop / 2 ? 7 : 0);
+  const box = () => gd._fullLayout.xaxis, priceAt = x => { const [a, b] = gd.layout.xaxis.range; return a + (x - box()._offset) / box()._length * (b - a); };
+  const x = 300, start = priceAt(x);
+  let moved = 0, most = 0;
+  for (let i = 0; i < 12; i++) {
+    const before = box()._offset;
+    h.wheel(x, -100); await h.frame();
+    if (box()._offset !== before) { moved++; most = Math.max(most, Math.round((gd.layout.xaxis.range[1] - gd.layout.xaxis.range[0]) / w)); }
+    assert.ok(Math.abs(priceAt(x) - start) <= w / 2 + 1e-6, `${i + 1} notches in: ${(priceAt(x) - start) / w} bars off, the plot ${box()._offset} px in`);
+  }
+  assert.equal(moved, 1, 'the plot moved once on the way in');
+  assert.ok(most > 150, 'with enough bars in view for 7 px to be more than half of one (' + most + ')');
+  // And back out, where the plot moves back.
+  for (let i = 0; i < 11; i++) {
+    h.wheel(x, 100); await h.frame();
+    assert.ok(Math.abs(priceAt(x) - start) <= w / 2 + 1e-6, `${i + 1} notches back out: ${(priceAt(x) - start) / w} bars off, the plot ${box()._offset} px in`);
+  }
+  assert.equal(box()._offset, 0, 'the plot is back where it was');
+  assert.ok(c.priceView, 'still a notch in');
+  // A drag that brings the heap into view and takes it out again, the same.
+  c.priceView = { lo: 42000, hi: 70000 };
+  await h.draw();
+  assert.equal(box()._offset, 7);
+  const grabbed = priceAt(500), offsets = new Set();
+  h.down(500);
+  for (const px of [520, 600, 700, 760, 700, 640, 520]) {
+    h.move(px); await h.frame(); offsets.add(box()._offset);
+    assert.ok(Math.abs(priceAt(px) - grabbed) <= w / 2 + 1e-6, `dragged to ${px} px: ${(priceAt(px) - grabbed) / w} bars off, the plot ${box()._offset} px in`);
+  }
+  h.up(); await h.frame();
+  assert.deepEqual([...offsets].sort(), [0, 7], 'the plot moved both ways during the drag');
+  // Only while the pointer is still where it was. With the pointer resting there, a day drawn on a plot that has moved
+  // keeps the price under it; once it has gone elsewhere nothing is held, and the view stays exactly as asked.
+  h.shiftFor = () => 0;
+  c.priceView = { lo: 20000, hi: 52000 };
+  await h.draw();
+  h.wheel(600, -100); await h.frame();
+  const resting = priceAt(600), asked = plain(c.priceView);
+  h.shiftFor = () => 12;
+  await h.draw();
+  assert.equal(box()._offset, 12);
+  assert.ok(Math.abs(priceAt(600) - resting) <= w / 2 + 1e-6, `the pointer resting: ${(priceAt(600) - resting) / w} bars off`);
+  assert.notDeepEqual(plain(c.priceView), asked, 'the view was set again for the plot as it now stands');
+  h.shiftFor = () => 0;
+  await h.draw();
+  h.wheel(600, -100); await h.frame();
+  const left = plain(c.priceView);
+  h.move(950);
+  h.shiftFor = () => 12;
+  await h.draw();
+  assert.equal(box()._offset, 12);
+  assert.deepEqual(plain(c.priceView), left, 'the pointer gone elsewhere: the view is as it was asked');
 });
 
 test('the wheel is left alone with Ctrl or Command, off the plot and before a chart is drawn; small turns draw once a bar, once a frame', async () => {
