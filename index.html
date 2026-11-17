@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-athdmn//YfyjvJTCAmlMIKrWhqwmTRVqaoK2HwS6kdU=' 'sha256-WFWbrSaj+l7OKURk8e1Npf3naP+pLL/gmeaGR46y1wM=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-Vw88yt4vaEkTTDmDPenCKMDVgYwt9kdd0bYKepo7pvc=' 'sha256-WFWbrSaj+l7OKURk8e1Npf3naP+pLL/gmeaGR46y1wM=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -439,13 +439,15 @@ function priceWindow(view, binWidth, fullSpan) {
 // leaves each of them within a tenth of a step of its gridline's price ($100 where the steps are $3,670: $95.2K $98.9K
 // $102.6K), so no two can read the same and none says more than it needs to. Each is written as a price: in thousands or
 // millions only where that takes one decimal at most, else out in full ($9,891 and $10,080, which read $9.891K and
-// $10.08K until 17 Nov 2026), and with every decimal kept where the unit is under a dollar ($9.50, not $9.5).
+// $10.08K until 17 Nov 2026); and under a dollar the unit is a cent or finer, never a dime, with every decimal kept
+// ($8.05 and $9.50: a view of 8 Jun 2011 read $8.1 beside a marked range given to the cent).
 function windowLabels(vals) {
   var step = vals.length > 1 ? Math.abs(vals[1] - vals[0]) : 0;
   var power = step > 0 ? Math.floor(Math.log10(step / 5)) : 0;
   var rounded = function(v, p) { var u = Math.pow(10, p); return Math.round(v / u) * u; };
   var near = function(p) { return vals.every(function(v) { return Math.abs(rounded(v, p) - v) <= step / 10 * (1 + 1e-9); }); };
   while (step > 0 && power < 15 && near(power + 1)) power++;
+  if (power === -1) power = -2;
   var scales = [[1e12, "T", 12], [1e9, "B", 9], [1e6, "M", 6], [1e3, "K", 3], [1, "", 0]];
   return vals.map(function(v) {
     var r = rounded(v, power), a = Math.abs(r);
