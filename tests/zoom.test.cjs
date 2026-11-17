@@ -481,7 +481,20 @@ test('a narrow zoomed plot labels fewer price steps, and a long last label ends 
   assert.ok(px(shown[0][1]) + px(shown[1][1]) / 2 + 8 <= step + 1e-9, 'the first label, starting at its line, clears the next');
   // Labels in this view need more figures than two: no two the same.
   assert.equal(new Set(shown.map(([, s]) => s)).size, shown.length);
-  // A label too long for the margin beside the plot ends at its line.
+  // A last label too long for the margin beside the plot ends at its gridline, and Plotly is told not to hide it for the
+  // spaces that put it there (it hides a label that reaches past the figure's edge: $102.6K went missing on the live
+  // site, 17 Nov 2026). The whole axis leaves Plotly's own rule alone.
+  c.priceView = { lo: 62000, hi: 70000 };
+  h.W = 1498; h.gd.clientWidth = 1498 + 160;
+  await h.draw();
+  const lastLabel = gd.layout.xaxis.ticktext[20], bare = lastLabel.replace(/\u00a0/g, '');
+  assert.ok(bare.length >= 7, bare);
+  assert.equal(lastLabel, bare + '\u00a0'.repeat(bare.length), 'ends at its gridline');
+  assert.equal(gd.layout.xaxis.ticklabeloverflow, 'allow');
+  c.priceView = null;
+  await h.draw();
+  assert.equal(gd.layout.xaxis.ticklabeloverflow, undefined, 'the whole axis as before');
+  assert.ok(!/\u00a0$/.test(gd.layout.xaxis.ticktext[20]));
   assert.deepEqual(plain(c.windowLabels([61000, 61100, 61200])), ['$61K', '$61.1K', '$61.2K']);
   // Two figures tell these apart, but would put $102,571 at $100K, most of a step away: each is rounded to $100.
   assert.deepEqual(plain(c.windowLabels([95230, 98900, 102571])), ['$95.2K', '$98.9K', '$102.6K']);
