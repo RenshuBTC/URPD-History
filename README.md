@@ -57,7 +57,8 @@ Toolbar, left to right:
 - **PIN Y-AXIS** — freeze the left axis where it is on the day you are viewing so other days can be compared against it; the Y-max field is off while it holds
 - **Bottom signal** — the share of the day in loss (value in % USD mode, 80% by default; coins in % BTC mode, 50%) at which the dashed line and the price box turn yellow and the box adds a line naming the threshold
 - **Bins**, **Smoothing** and **Y-max** — bins, how many equal-width bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000), with one more past it that takes in what the smoothing spreads beyond it, and each bar's width in dollars on the day shown after the count (BINS 625 $201); smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, the percentile of the day’s bar heights where the left axis ends (100 in % USD mode, 99.8 in % BTC mode, each kept as you type it)
-- **Click and drag** across the chart — mark a range of prices (whole columns); the mark stays as you move through the days and switch modes until a double-click or Escape clears it, and gives the range, the share of the day that last moved inside it (of the value in % USD, of the coins in % BTC) broken down by age band in AGE and between long- and short-term holders in LTH/STH, and the most days until every coin there is a long-term holder
+- **Mouse wheel** over the chart — zoom the price axis in and out about the price under the pointer; **hold the left button and drag** to move a zoomed axis (so does the wheel turned sideways, or with Shift); a double-click or Escape gives the whole axis back. The view stays as you move through the days and switch modes, always holds whole bars (ten at the least), and changes nothing else: each bar keeps its width in dollars and its height, every figure is still counted over the whole day, and the left axis ends where it does on the whole axis or at the tallest bar in view, whichever is lower. With the dashed line out of view, the price box stays at the edge it left by, with an arrow pointing its way
+- **Hold the right button and drag** across the chart (or Ctrl and the left button) — mark a range of prices (whole columns); the mark stays as you move through the days and switch modes until two quick right-clicks or Escape clear it, and gives the range, the share of the day that last moved inside it (of the value in % USD, of the coins in % BTC) broken down by age band in AGE and between long- and short-term holders in LTH/STH, and the most days until every coin there is a long-term holder
 - **FULL HISTORY VIDEOS** — a menu of the latest 5-minute full-history videos on YouTube, one for each weighting and colouring: **VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**, **VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)** (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
 
@@ -68,7 +69,7 @@ its type goes a size down, and past that the whole bar is drawn smaller, every w
 
 On a phone the toolbar is hidden to give the chart the whole screen. Tap the left or
 right quarter of the screen to step back or forward a day, or drag the orange dot along
-the price line; the chart itself does not pan or zoom.
+the price line; on a phone the chart itself does not pan or zoom.
 
 ## How it works
 
