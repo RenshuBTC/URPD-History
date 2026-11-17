@@ -2,11 +2,12 @@ name: Evals
 
 # Draws a sample of the live chart every day, in headless Chromium, as a visitor sees it, and checks each trace with
 # the evaluators in evals/ (see evals/README.md): the day or block draws, it is the one asked for, its totals match
-# BRK's own series, a block's time is the visitor's own clock's, the step buttons move as they say, its words are clear
-# of each other and say nothing untrue, and the video menu and the axis history are current. The sample changes every
-# day (it is seeded with the date), so over time it covers the whole history, every view, window, language and time
-# zone. A red run means a check failed; GitHub emails the owner.
-# Run it by hand (Actions -> Evals -> Run workflow) with plan "review" for the whole error-analysis set, 161 traces
+# BRK's own series, a block's time is the visitor's own clock's, the step buttons move as they say, a zoomed price
+# axis shows the day's own bars, the wheel and the mouse buttons do what the page says, its words are clear of each
+# other and say nothing untrue, and the video menu and the axis history are current. The sample changes every day (it
+# is seeded with the date), so over time it covers the whole history, every view, window, language and time zone. A
+# red run means a check failed; GitHub emails the owner.
+# Run it by hand (Actions -> Evals -> Run workflow) with plan "review" for the whole error-analysis set, 205 traces
 # with screenshots and a review page, kept for 30 days as the run's "evals" artifact.
 on:
   schedule:
@@ -14,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       plan:
-        description: "daily: a seeded sample of 16 traces; review: all 161, with screenshots"
+        description: "daily: a seeded sample of 18 traces; review: all 205, with screenshots"
         default: daily
         type: choice
         options: [daily, review]
