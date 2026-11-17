@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-gMMe74dr8YwPDwp+KIGSasH1Q/T1Daq54RvQiuOU8ao=' 'sha256-FCPDnq1sfsGwzIqhYi4dg40ECyX1Mna9g3T0Sbo5SIE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-FgWVmH6NA+Sz5BTTUjG2vw1G0xow88xhp37/T3gXAU0=' 'sha256-FCPDnq1sfsGwzIqhYi4dg40ECyX1Mna9g3T0Sbo5SIE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -455,6 +455,7 @@ var lastMarkContext = null;   // what the last drawing gave the marked range's b
 // two thin white lines.
 var MARK_TINT = "rgba(255,255,255,0.06)", MARK_EDGE = "rgba(255,255,255,0.75)";
 var repaintLiveMark = null;   // set by attachChartMouse: shows a range being dragged again, with fresh figures
+var reholdView = null;       // set by attachChartMouse: the view again, for a plot that has moved under the pointer
 var lastRenderedSettings = null;
 var renderSeq = 0; // bumped per loadAndRender call so a slow fetch cannot paint over a newer date
 var spotCache = {};
@@ -2644,7 +2645,7 @@ function drawChart(data, plotSeq, navigationSeq) {
     var legH = (fl && fl.legend && fl.legend._height) ? fl.legend._height : 0;
     if (fl && lastLegendKey) legendDims[lastLegendKey] = { h: legH };
     var off = fl && fl.xaxis && fl.xaxis._length > 0 && (Math.abs(fl.xaxis._length - lastPlotW) > 0.5 || Math.abs(legH - lastLegendDims.h) > 1);
-    if (off && reflowCount < 2) { reflowCount++; return drawChart(data, plotSeq, navigationSeq); }
+    if (off && reflowCount < 2) { reflowCount++; if (reholdView) reholdView(); return drawChart(data, plotSeq, navigationSeq); }
     else reflowCount = 0;
     gdEl.removeAllListeners("plotly_legendclick");
     gdEl.on("plotly_legendclick", function(evtData) {
@@ -2986,8 +2987,52 @@ document.addEventListener("keydown", function(e){
     if ((w ? w.lo : 0) === c.xLo && (w ? w.hi - w.lo : c.fullSpan) === c.xSpan) return;
     if (!zoomFrame) zoomFrame = requestAnimationFrame(function() { zoomFrame = 0; rerenderCurrent(); });
   }
-  // The view asked for so far and the whole axis it is a part of, as the day on screen has them.
-  function viewNow() { var full = lastMarkContext.fullSpan; return { lo: priceView ? priceView.lo : 0, hi: priceView ? priceView.hi : full, full: full }; }
+  // The view asked for so far, the whole axis it is a part of and the bars the day on screen shows of it (on: null for
+  // all of them). A day that cannot show the view where it was asked, having slid it back inside its axis or widened it
+  // to ten of its bars, shows another stretch of prices: there the mouse goes on from what is on screen.
+  function viewNow() {
+    var full = lastMarkContext.fullSpan, wB = lastRenderedData.binWidth, on = priceWindow(priceView, wB, full);
+    if (!on) return { lo: 0, hi: full, full: full, on: null };
+    var half = wB / 2 * (1 + 1e-9), own = Math.abs(on.lo - priceView.lo) <= half && Math.abs((on.hi - on.lo) - (priceView.hi - priceView.lo)) <= half;
+    return { lo: own ? priceView.lo : on.lo, hi: own ? priceView.hi : on.hi, full: full, on: on };
+  }
+  // ---- The price under the pointer ----
+  // The wheel and the left button both keep one price under the pointer while the view changes around it. `held` is that
+  // price, where the pointer was, and the view asked for to keep it there. It is read off the bars on screen when a run
+  // of turns or a drag begins and stands for as long as the pointer stays where it is and nothing else moves the view.
+  // Read afresh at every turn of the wheel, as it was at first, each drawing's rounding to whole bars was added to the
+  // last one's: sixteen notches, each drawn, moved the price under the pointer almost three bars, and six by the time the
+  // wheel had been turned back (17 Nov 2026).
+  var held = null;
+  // The day on screen: a bar's width in dollars, where its axis ends, and how many bars that is.
+  function axisNow() { var wB = lastRenderedData.binWidth, full = lastMarkContext.fullSpan; return { w: wB, full: full, slots: Math.ceil(full / wB - 1e-9) }; }
+  // How far across the plot the pointer is: 0 at its left edge, 1 at its right, and beyond either for a drag that has left it.
+  function across(b, clientX) { return (clientX - b.left) / b.w; }
+  // A view `width` dollars wide with the price `at` under the pointer at clientX, on the plot as it stands. It starts
+  // where the bars the day will draw of it (as priceWindow counts them) put that price back under the pointer, so the
+  // price drawn there is never more than half a bar from it. A view that would reach past an end of the axis is kept
+  // inside, and no longer holds the price (free: false).
+  function viewHolding(at, clientX, width, b, a) {
+    var n = Math.max(Math.min(ZOOM_MIN_BARS, a.slots), Math.round(width / a.w));
+    var lo = at - across(b, clientX) * n * a.w, inside = Math.max(0, Math.min((a.slots - n) * a.w, lo));
+    return { view: { lo: inside, hi: inside + width }, free: inside === lo };
+  }
+  function showHolding(at, clientX, width, b, a) {
+    var got = viewHolding(at, clientX, width, b, a);
+    showView(got.view);
+    held = got.free ? { x: clientX, at: at, view: got.view, w: a.w, full: a.full } : null;
+  }
+  // The plot itself moves when the left axis's labels get longer or shorter, as a zoom makes them by changing where that
+  // axis ends: its left edge by up to 7 px, and the bars with it. drawChart then draws once more at the plot's new width,
+  // and asks here first for the view that puts the held price back under the pointer on the plot as it now stands.
+  reholdView = function() {
+    var b = plotBox();
+    if (!held || !b || held.view !== priceView || !lastRenderedData || !lastMarkContext) return;
+    var a = axisNow();
+    if (held.w !== a.w || held.full !== a.full) return;
+    var got = viewHolding(held.at, held.x, priceView.hi - priceView.lo, b, a);
+    if (got.free) { priceView = got.view; held.view = got.view; }
+  };
   gd.addEventListener("wheel", function(e) {
     // With Ctrl or the Command key the wheel is the browser's own zoom, which is left alone.
     if (e.ctrlKey || e.metaKey || drag || pan || !lastRenderedData || !lastMarkContext) return;
@@ -2997,17 +3042,16 @@ document.addEventListener("keydown", function(e){
     var unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? b.h : 1;   // a wheel that counts in lines or pages, as pixels
     var dy = e.deltaY * unit, dx = e.deltaX * unit;
     if (e.shiftKey && !dx) { dx = dy; dy = 0; }   // Shift turns the wheel sideways, where the browser has not already
-    var c = lastMarkContext, v = viewNow(), span = v.hi - v.lo, lo = v.lo;
-    if (dy) {
-      // The price under the pointer stays under it: away from you zooms in, towards you out, no further than the whole
-      // axis and no closer than ZOOM_MIN_BARS bars.
-      var frac = Math.max(0, Math.min(1, (e.clientX - b.left) / b.w)), at = c.xLo + frac * c.xSpan;
-      span = Math.max(Math.min(v.full, ZOOM_MIN_BARS * c.geom.binWidth), Math.min(v.full, span * Math.exp(dy * ZOOM_RATE)));
-      lo = at - frac * span;
-    }
-    if (dx) lo += dx / b.w * span;
-    lo = Math.max(0, Math.min(v.full - span, lo));
-    showView(span >= v.full * (1 - 1e-9) ? null : { lo: lo, hi: lo + span });
+    var a = axisNow(), v = viewNow(), span = v.hi - v.lo;
+    if (!(a.w > 0) || !(a.full > 0)) return;   // a day with no axis has nothing to zoom
+    var at = held && held.x === e.clientX && held.view === priceView && held.w === a.w && held.full === a.full ? held.at
+      : (v.on ? v.on.lo + across(b, e.clientX) * (v.on.hi - v.on.lo) : across(b, e.clientX) * a.full);
+    // Away from you zooms in, towards you out, about that price: no further than the whole axis and no closer than
+    // ZOOM_MIN_BARS bars. Sideways, the price goes with the bars.
+    if (dy) span = Math.max(Math.min(a.full, ZOOM_MIN_BARS * a.w), Math.min(a.full, span * Math.exp(dy * ZOOM_RATE)));
+    if (dx) at += dx / b.w * span;
+    if (span >= a.full * (1 - 1e-9)) { held = null; showView(null); }
+    else showHolding(at, e.clientX, span, b, a);
   }, { passive: false });
   // The right button is the chart's over the plot, and for a moment after a mark is let go wherever the pointer then is
   // (Windows opens its menu when the button comes up): the browser's menu stays shut there.
@@ -3024,6 +3068,8 @@ document.addEventListener("keydown", function(e){
     else pan = { b: b, x0: e.clientX, moved: false, from: null };
   }, true);
   window.addEventListener("mousemove", function(e) {
+    // The pointer has gone elsewhere: no price is held under where it was.
+    if (held && !pan && e.clientX !== held.x) held = null;
     if (pan) {
       // Held and dragged, the left button moves a zoomed axis with the pointer, a bar at a time; on the whole axis
       // there is nowhere to move to.
@@ -3031,15 +3077,18 @@ document.addEventListener("keydown", function(e){
       if (!priceView || !lastMarkContext) return;
       e.preventDefault();
       dropSelection();
+      var pb = plotBox() || pan.b, pa = axisNow();
+      if (!(pa.w > 0) || !(pa.full > 0)) return;
       if (!pan.moved) {
         pan.moved = true;
-        // From where the button went down, so the bar that was under the pointer then stays under it.
-        pan.from = { lo: lastMarkContext.xLo, span: lastMarkContext.xSpan, width: priceView.hi - priceView.lo, x: pan.x0 };
+        // The price that was under the pointer where the button went down stays under it (see "The price under the
+        // pointer"), and the view as wide as it is.
+        var pv = viewNow();
+        if (!pv.on) return;
+        pan.from = { at: pv.on.lo + across(pb, pan.x0) * (pv.on.hi - pv.on.lo), width: pv.hi - pv.lo };
         document.body.classList.add("panning");
       }
-      var f = pan.from, full = lastMarkContext.fullSpan;
-      var lo = Math.max(0, Math.min(full - f.width, f.lo - (e.clientX - f.x) / pan.b.w * f.span));
-      showView({ lo: lo, hi: lo + f.width });
+      if (pan.from) showHolding(pan.from.at, e.clientX, pan.from.width, pb, pa);
       return;
     }
     if (!drag) return;
