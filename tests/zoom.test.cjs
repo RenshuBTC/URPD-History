@@ -699,6 +699,13 @@ test('a zoomed view\'s labels read as prices: thousands with a decimal at most, 
   assert.deepEqual(plain(c.windowLabels([102500, 102550, 102600])), ['$102,500', '$102,550', '$102,600'], 'to $10: in full, as long as $102.55K and plainer');
   // Under a dollar every decimal of the unit is written, so a column of cents reads as cents.
   assert.deepEqual(plain(c.windowLabels([0.5, 0.51, 0.52])), ['$0.50', '$0.51', '$0.52']);
+  // And the unit is a cent or finer, never a dime. On the live page, 17 Nov 2026, a view of 8 Jun 2011 from $5.02 to
+  // $17.15 was labelled $5.0 $5.6 $6.2 ... $8.1 (for $8.05), beside a marked range's box that read $10.08 – $13.27.
+  const dimes = plain(c.windowLabels(ticks(5.0190232, 17.15196624)));
+  assert.deepEqual(dimes.slice(0, 6), ['$5.02', '$5.63', '$6.23', '$6.84', '$7.45', '$8.05']);
+  assert.equal(dimes[20], '$17.15');
+  assert.deepEqual(plain(c.windowLabels([5, 5.5, 6, 6.5])), ['$5.00', '$5.50', '$6.00', '$6.50']);
+  assert.deepEqual(plain(c.windowLabels([5, 10, 15, 20])), ['$5', '$10', '$15', '$20'], 'whole dollars stay whole');
   assert.deepEqual(plain(c.windowLabels(ticks(8.47, 12.97))).slice(0, 8), ['$8.47', '$8.70', '$8.92', '$9.15', '$9.37', '$9.60', '$9.82', '$10.05'], 'a 0 kept: $8.70, $9.60');
   assert.deepEqual(plain(c.windowLabels(ticks(0.2096, 0.7936))).slice(0, 3), ['$0.210', '$0.239', '$0.268']);
   // Past a million the same: one decimal of millions at most, else thousands.
@@ -714,6 +721,7 @@ test('a zoomed view\'s labels read as prices: thousands with a decimal at most, 
     labels.forEach((s, k) => {
       assert.doesNotMatch(s, /\.\d\d+[KMBT]$/, `${s} (bars of $${w}, ${k0} to ${k0 + n})`);
       assert.match(s, /^\$(0|[1-9]\d{0,2}(,\d{3})*)(\.\d+)?[KMBT]?$/, s);
+      assert.doesNotMatch(s, /^\$[\d,]+\.\d$/, `${s}: dollars with one decimal (bars of $${w}, ${k0} to ${k0 + n})`);
       assert.ok(Math.abs(dollars(s) - vals[k]) <= step / 10 * (1 + 1e-6), `${s} for ${vals[k]} (a step is ${step})`);
       if (k) assert.notEqual(s, labels[k - 1], `${s} twice (bars of $${w}, ${k0} to ${k0 + n})`);
     });
