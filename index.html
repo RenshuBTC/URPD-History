@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-eOnyw2BJEi6g83cSK/RCVMKrM+fQNka+h6T4VYo4zwA=' 'sha256-FCPDnq1sfsGwzIqhYi4dg40ECyX1Mna9g3T0Sbo5SIE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-gMMe74dr8YwPDwp+KIGSasH1Q/T1Daq54RvQiuOU8ao=' 'sha256-FCPDnq1sfsGwzIqhYi4dg40ECyX1Mna9g3T0Sbo5SIE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -2407,6 +2407,9 @@ function drawChart(data, plotSeq, navigationSeq) {
     annotations:annotations,shapes:shapes,
     margin:{l:24,r:24,t:topMargin,b:bottomMargin},hovermode:"closest"
   };
+  // Plotly hides a tick label that reaches past the figure's edge, and counts the spaces that push a zoomed view's first
+  // and last labels inside the plot: there the labels are left alone (the spaces past the edge show nothing).
+  if (win) layout.xaxis.ticklabeloverflow = "allow";
   // BTC price overlay: a one-year window at a fixed horizontal scale. The chain tip stays at the
   // right edge while the marker is within three months of it; further back, the window follows the
   // marker (kept three months from the right edge) and the later part of the line runs off-screen,
