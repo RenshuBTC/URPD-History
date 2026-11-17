@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-/MAhdZ0VTD+hrOKEe1YHO7DAW/KUJq9HbDVg5ETb2co=' 'sha256-FCPDnq1sfsGwzIqhYi4dg40ECyX1Mna9g3T0Sbo5SIE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-eOnyw2BJEi6g83cSK/RCVMKrM+fQNka+h6T4VYo4zwA=' 'sha256-FCPDnq1sfsGwzIqhYi4dg40ECyX1Mna9g3T0Sbo5SIE=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -434,16 +434,18 @@ function priceWindow(view, binWidth, fullSpan) {
   var k0 = Math.max(0, Math.min(slots - n, Math.round(view.lo / binWidth)));
   return { k0: k0, k1: k0 + n, lo: k0 * binWidth, hi: (k0 + n) * binWidth };
 }
-// A zoomed view's price labels: as many significant figures as it takes for no two neighbours to read the same (a
-// narrow view's twenty steps are finer than the two or three the whole axis needs), and written out where even seven
-// do not tell them apart.
+// A zoomed view's price labels. The whole axis rounds its labels to two figures ($100K for $102,571, most of a step
+// out); a view is zoomed to be read closely. So every label is rounded to the same unit, the largest power of ten that
+// leaves each within a tenth of a step of its gridline's price ($100 where the steps are $3,670: $95.2K $98.9K $102.6K),
+// and no two can read the same.
 function windowLabels(vals) {
-  var clash = function(l) { for (var i = 1; i < l.length; i++) if (l[i] === l[i - 1]) return true; return false; };
-  for (var sf = 2; sf <= 7; sf++) {
-    var labels = vals.map(function(v) { return axisNumber(v, false, sf); });
-    if (!clash(labels)) return labels;
-  }
-  return vals.map(function(v) { return "$" + v.toLocaleString("en-US", {maximumFractionDigits: 2}); });
+  var step = vals.length > 1 ? Math.abs(vals[1] - vals[0]) : 0;
+  var power = step > 0 ? Math.floor(Math.log10(step / 5)) : 0, unit = Math.pow(10, power);
+  return vals.map(function(v) {
+    var r = Math.round(v / unit) * unit;
+    if (!(Math.abs(r) > 0)) return "$0";
+    return axisNumber(r, false, Math.max(1, Math.min(15, Math.floor(Math.log10(Math.abs(r)) + 1e-9) - power + 1)));
+  });
 }
 var LTH_DAYS = 150;   // Bitcoin Research Kit's line between short- and long-term holders (see STH_BANDS)
 var STH_BAND_MIN_DAYS = [0, 1 / 24, 1, 7, 30, 60, 90, 120];   // the youngest age in each short-term band, in days
@@ -2257,8 +2259,12 @@ function drawChart(data, plotSeq, navigationSeq) {
   // A plot too narrow for twenty-one labels side by side (a portrait tablet, a narrow window) labels every other
   // step, or fewer still, rather than running them together; all twenty-one gridlines stay.
   var xLabelW = xTicktext.reduce(function(m, s) { return Math.max(m, textPx(s, 11) * 1.07); }, 0);
-  // (Zoomed, the first label is as long as the rest and starts at its line: it needs half a label more before the next.)
-  if (win) xLabelW = 1.5 * xTicktext.reduce(function(m, s) { return Math.max(m, textPx(s.replace(/\u00a0/g, ""), 11) * 1.07); }, 0);
+  // (Zoomed, the first label is as long as the rest and starts at its line, and the last may end at its own: each
+  // needs its whole width and half the next label's before the two meet.)
+  if (win) {
+    var xBare = xTicktext.map(function(s) { return textPx(s.replace(/\u00a0/g, ""), 11) * 1.07; }), xWide = Math.max.apply(null, xBare);
+    xLabelW = Math.max(xWide, xBare[0] + xWide / 2, xTicktext[AXIS_STEPS].slice(-1) === "\u00a0" ? xBare[AXIS_STEPS] + xWide / 2 : 0);
+  }
   var xEvery = [1, 2, 4, 5, 10, 20].filter(function(n) { return xLabelW + 8 <= n * plotW / AXIS_STEPS; })[0] || AXIS_STEPS;
   if (xEvery > 1) xTicktext = xTicktext.map(function(s, k) { return k % xEvery ? "" : s; });
 

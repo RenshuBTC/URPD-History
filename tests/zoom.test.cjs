@@ -104,6 +104,9 @@ test('zoomed, the chart shows the same bars, only fewer: their prices, heights a
   const labels = L.xaxis.ticktext.map(s => s.replace(/ /g, ''));
   assert.equal(new Set(labels).size, 21, labels.join(' '));
   assert.match(labels[0], /^\$50(\.\d+)?K$/); assert.match(labels[20], /^\$62(\.\d+)?K$/);
+  // Each label within a tenth of a step of its gridline's price (the whole axis's two figures can be half a step out).
+  const dollars = s => Number(s.replace(/[$,]/g, '').replace(/K$/, 'e3').replace(/M$/, 'e6')), step = n * w / 20;
+  labels.forEach((s, k) => assert.ok(Math.abs(dollars(s) - L.xaxis.tickvals[k]) <= step / 10 + 1e-9, `${s} for ${L.xaxis.tickvals[k]}`));
   assert.equal(L.xaxis.ticktext[0], ' '.repeat(labels[0].length) + labels[0], 'the first label starts at its gridline');
   // The left axis: the tallest bar in view, lower than the day's (the heap at $40,000).
   const seen = Math.max(...whole.y.slice(k0, k0 + n));
@@ -480,9 +483,14 @@ test('a narrow zoomed plot labels fewer price steps, and a long last label ends 
   assert.equal(new Set(shown.map(([, s]) => s)).size, shown.length);
   // A label too long for the margin beside the plot ends at its line.
   assert.deepEqual(plain(c.windowLabels([61000, 61100, 61200])), ['$61K', '$61.1K', '$61.2K']);
+  // Two figures tell these apart, but would put $102,571 at $100K, most of a step away: each is rounded to $100.
+  assert.deepEqual(plain(c.windowLabels([95230, 98900, 102571])), ['$95.2K', '$98.9K', '$102.6K']);
+  assert.deepEqual(plain(c.windowLabels([20000, 30000, 40000])), ['$20K', '$30K', '$40K'], 'no more figures than the unit needs');
+  assert.deepEqual(plain(c.windowLabels([0, 2500, 5000])), ['$0', '$2.5K', '$5K']);
+  assert.deepEqual(plain(c.windowLabels([999950, 1000450, 1000950])), ['$1M', '$1.0005M', '$1.001M'], 'across a power of ten');
   assert.deepEqual(plain(c.windowLabels([61000, 61010, 61020])), ['$61K', '$61.01K', '$61.02K']);
   assert.deepEqual(plain(c.windowLabels([0.5, 0.51, 0.52])), ['$0.5', '$0.51', '$0.52']);
-  assert.deepEqual(plain(c.windowLabels([1234567.1, 1234567.2])), ['$1,234,567.1', '$1,234,567.2'], 'written out where seven figures do not tell them apart');
+  assert.deepEqual(plain(c.windowLabels([0.2614, 0.2859, 0.3104])), ['$0.261', '$0.286', '$0.31'], 'cents and less, on the first days\' axis');
 });
 
 test('the explainer and the README say what the mouse does, in every language', () => {
