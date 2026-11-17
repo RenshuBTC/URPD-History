@@ -618,6 +618,33 @@ test('a marked range in a zoomed view: its lines between the bars in view, its b
   const tint = gd.layout.shapes.find(s => s.type === 'rect' && s.fillcolor === c.MARK_TINT);
   assert.ok(tint.x0 >= lo - w && tint.x0 <= lo + w && Math.abs(tint.x1 - 50000) <= w, 'tinted from the view\'s edge to the mark\'s end');
   assert.ok(box.x >= lo - 1e-6 && (box.x - lo) * m + box.width <= (50000 - lo) * m + w * m, 'the box inside the part in view');
+  // A white line is an end of the mark. The view has cut this one's low end off, so only its high end has a line, and the
+  // tint starts at the plot's own edge. (Until 17 Nov 2026 a second line stood at the view's edge, as if the mark ended
+  // with the view: in the review's screenshots, at the right edge it was drawn over the last bar in view.)
+  const edgeLines = () => gd.layout.shapes.filter(s => s.type === 'line' && s.line.color === c.MARK_EDGE);
+  const tinted = () => gd.layout.shapes.find(s => s.type === 'rect' && s.fillcolor === c.MARK_TINT);
+  assert.equal(edgeLines().length, 1, 'one white line');
+  assert.ok(Math.abs(edgeLines()[0].x0 - 50000) <= w, 'at the mark\'s high end');
+  assert.equal(tint.x0, lo, 'tinted from the plot\'s edge');
+  // Cut at its high end: the line at its low end, the tint to the plot's right edge.
+  c.priceView = { lo: 20000, hi: 40000 };
+  await h.draw();
+  assert.equal(edgeLines().length, 1);
+  assert.ok(Math.abs(edgeLines()[0].x0 - 30000) <= w, 'at the mark\'s low end');
+  assert.equal(tinted().x1, gd.layout.xaxis.range[1]);
+  // Wider than the view at both ends: no line, the whole plot tinted, and the box still names the whole mark.
+  c.priceView = { lo: 35000, hi: 45000 };
+  await h.draw();
+  assert.equal(edgeLines().length, 0, 'no end of the mark is in view');
+  assert.deepEqual([tinted().x0, tinted().x1], plain(gd.layout.xaxis.range));
+  assert.match(flat(markBox()), /^Price: \$30,000 – \$50,000 /);
+  // A mark that ends exactly where the view does has its ends in view: both lines.
+  c.rangeMark = { lo: 300 * w, hi: 400 * w };
+  c.priceView = { lo: 300 * w, hi: 400 * w };
+  await h.draw();
+  assert.deepEqual(plain(gd.layout.xaxis.range).map(v => Math.round(v / w)), [300, 400]);
+  assert.equal(edgeLines().length, 2, 'both ends of the mark are the view\'s own edges');
+  c.rangeMark = { lo: 30000, hi: 50000 };
   // A mark out of view altogether: nothing drawn, and it is still there when the view comes back.
   c.priceView = { lo: 55000, hi: 70000 };
   await h.draw();
@@ -655,10 +682,43 @@ test('a narrow zoomed plot labels fewer price steps, and a long last label ends 
   assert.deepEqual(plain(c.windowLabels([95230, 98900, 102571])), ['$95.2K', '$98.9K', '$102.6K']);
   assert.deepEqual(plain(c.windowLabels([20000, 30000, 40000])), ['$20K', '$30K', '$40K'], 'no more figures than the unit needs');
   assert.deepEqual(plain(c.windowLabels([0, 2500, 5000])), ['$0', '$2.5K', '$5K']);
-  assert.deepEqual(plain(c.windowLabels([999950, 1000450, 1000950])), ['$1M', '$1.0005M', '$1.001M'], 'across a power of ten');
-  assert.deepEqual(plain(c.windowLabels([61000, 61010, 61020])), ['$61K', '$61.01K', '$61.02K']);
-  assert.deepEqual(plain(c.windowLabels([0.5, 0.51, 0.52])), ['$0.5', '$0.51', '$0.52']);
-  assert.deepEqual(plain(c.windowLabels([0.2614, 0.2859, 0.3104])), ['$0.261', '$0.286', '$0.31'], 'cents and less, on the first days\' axis');
+  assert.deepEqual(plain(c.windowLabels([0.2614, 0.2859, 0.3104])), ['$0.261', '$0.286', '$0.310'], 'cents and less, on the first days\' axis');
+});
+
+test('a zoomed view\'s labels read as prices: thousands with a decimal at most, else written out, and cents kept whole', () => {
+  // 17 Nov 2026, on the review's screenshots: ten bars of 17 Dec 2017 were labelled $9.891K $9.922K ... $10.08K, and
+  // 29 Nov 2013's last bars $991 $1.029K $1.066K. A price to the dollar is written as dollars.
+  const { c } = app();
+  const ticks = (from, to) => Array.from({ length: 21 }, (_, k) => from + (to - from) * k / 20);
+  const dollars = s => Number(s.replace(/[$,]/g, '').replace(/K$/, 'e3').replace(/M$/, 'e6'));
+  const tenBars = plain(c.windowLabels(ticks(9890.8, 10206.8)));
+  assert.deepEqual(tenBars.slice(0, 4), ['$9,891', '$9,907', '$9,922', '$9,938']);
+  assert.equal(tenBars[12], '$10,080', 'not $10.08K');
+  assert.deepEqual(plain(c.windowLabels(ticks(764.26, 1141.82))).slice(11, 14), ['$972', '$991', '$1,010']);
+  assert.deepEqual(plain(c.windowLabels([61000, 61010, 61020])), ['$61,000', '$61,010', '$61,020']);
+  assert.deepEqual(plain(c.windowLabels([102500, 102550, 102600])), ['$102,500', '$102,550', '$102,600'], 'to $10: in full, as long as $102.55K and plainer');
+  // Under a dollar every decimal of the unit is written, so a column of cents reads as cents.
+  assert.deepEqual(plain(c.windowLabels([0.5, 0.51, 0.52])), ['$0.50', '$0.51', '$0.52']);
+  assert.deepEqual(plain(c.windowLabels(ticks(8.47, 12.97))).slice(0, 8), ['$8.47', '$8.70', '$8.92', '$9.15', '$9.37', '$9.60', '$9.82', '$10.05'], 'a 0 kept: $8.70, $9.60');
+  assert.deepEqual(plain(c.windowLabels(ticks(0.2096, 0.7936))).slice(0, 3), ['$0.210', '$0.239', '$0.268']);
+  // Past a million the same: one decimal of millions at most, else thousands.
+  assert.deepEqual(plain(c.windowLabels([900000, 1000000, 1100000])), ['$900K', '$1M', '$1.1M']);
+  assert.deepEqual(plain(c.windowLabels([999950, 1000450, 1000950])), ['$1,000K', '$1,000.5K', '$1,001K']);
+  // Whatever the view, on every day's bars: no thousands or millions with two decimals or more, each label within a
+  // tenth of a step of its gridline's price, and no two the same.
+  let seed = 7;
+  const rand = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let i = 0; i < 4000; i++) {
+    const w = Math.pow(10, -3 + 9 * rand()) * (1 + rand()), k0 = Math.floor(rand() * 600), n = 10 + Math.floor(rand() * 600);
+    const vals = ticks(k0 * w, (k0 + n) * w), labels = plain(c.windowLabels(vals)), step = n * w / 20;
+    labels.forEach((s, k) => {
+      assert.doesNotMatch(s, /\.\d\d+[KMBT]$/, `${s} (bars of $${w}, ${k0} to ${k0 + n})`);
+      assert.match(s, /^\$(0|[1-9]\d{0,2}(,\d{3})*)(\.\d+)?[KMBT]?$/, s);
+      assert.ok(Math.abs(dollars(s) - vals[k]) <= step / 10 * (1 + 1e-6), `${s} for ${vals[k]} (a step is ${step})`);
+      if (k) assert.notEqual(s, labels[k - 1], `${s} twice (bars of $${w}, ${k0} to ${k0 + n})`);
+    });
+    if (step < 20) for (const s of labels) if (s !== '$0') assert.equal((s.split('.')[1] || '').length, (labels.find(x => x !== '$0').split('.')[1] || '').length, 'the same decimals along the axis: ' + labels.slice(0, 4).join(' '));
+  }
 });
 
 test('the explainer and the README say what the mouse does, in every language', () => {
@@ -676,6 +736,10 @@ test('the explainer and the README say what the mouse does, in every language', 
   assert.doesNotMatch(text('en', 'Marking a price range'), /double-click|Click and drag/);
   assert.match(text('zh', '缩放价格轴'), /滚轮.*鼠标左键.*双击图表或按 Esc 键/); assert.match(text('zh', '标记价格区间'), /^在图表上按住鼠标右键.*快速右键单击两次或按 Esc 键/);
   assert.match(text('ja', '価格軸を拡大・縮小する'), /マウスホイール.*左ボタン.*ダブルクリックするか Esc キー/); assert.match(text('ja', '価格の範囲に印を付ける'), /^チャート上でマウスの右ボタン.*2 回右クリックするか Esc キー/);
+  // How a zoomed view's labels read, and how it shows a marked range that reaches past it.
+  assert.match(text('en', 'Zooming the price axis'), /each labelled to within a tenth of a step of its line's price.*tinted up to the edge of the chart with no white line there \(a white line is always an end of the mark\)/);
+  assert.match(text('zh', '缩放价格轴'), /不超过十分之一格.*边缘处不画白线（白线永远表示标记的端点）/);
+  assert.match(text('ja', '価格軸を拡大・縮小する'), /10 分の 1 目盛り以内.*その端には白い線を引きません（白い線は必ず印の端です）/);
   const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
   assert.match(readme, /\*\*Mouse wheel\*\* over the chart — zoom the price axis/);
   assert.match(readme, /\*\*Hold the right button and drag\*\* across the chart/);
