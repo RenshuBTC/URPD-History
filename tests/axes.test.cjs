@@ -501,6 +501,48 @@ test('a marked range\'s box gives its share of the day, broken down as the bars 
   assert.ok(asked > 0, 'asked for the highs and lows');
 });
 
+test('a marked range\'s box and a bar\'s hover give prices to the bar: cents while bars are under a dollar wide, finer under a cent', async () => {
+  // 8 Jun 2011 in the review of 17 Nov 2026: a bar was 4.4 cents wide and a range marked from $10.69 to $11.18 read
+  // "Price: $11 – $11", both ends rounded to the dollar as they are from $10 up. On 18 Jul 2010, bars a sixth of a cent
+  // wide, $0.3856 to $0.504 read "$0.39 – $0.5".
+  assert.deepEqual([201.12, 1.8, 1, 0.9999, 0.044, 0.01, 0.0099, 0.0016, 0, NaN].map(w => app().c.barPlaces(w)), [0, 0, 0, 2, 2, 2, 3, 3, 0, 0]);
+  const flat = a => a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '');
+  const day = async (top, lo, hi) => {
+    // A page of its own each time: the price axis only ever grows, and would keep the last day's.
+    const { c, element } = app();
+    const markBox = () => element('chart').layout.annotations.find(a => a.xref === 'x' && a.width);
+    // Coins from a tenth of the top price up to it, the day closing at 85% of it.
+    const bands = () => { const a = new Array(23).fill(null).map(() => ({})); for (let k = 2; k <= 20; k++) a[13][+(top * k / 20).toPrecision(4)] = 1; return a; };
+    const { dates, raws } = market(c, { start: '2011-05-01', n: 60, close: () => top * 0.85, cohorts: bands });
+    const data = c.buildData(dates[50], raws[50]), w = data.binWidth;
+    c.priceHighLow = { high: null, low: null };
+    c.rangeMark = { lo: Math.round(lo * top / w) * w, hi: Math.round(hi * top / w) * w };
+    await c.renderChart(data);
+    return { w, mark: c.rangeMark, text: flat(markBox()), hover: element('chart').data.find(t => t.type === 'bar').hovertemplate };
+  };
+  const ends = text => /^Price: \$([\d,.]+) – \$([\d,.]+) /.exec(text).slice(1).map(v => Number(v.replace(/,/g, '')));
+  // Bars about 4.4 cents wide.
+  let d = await day(27.5, 0.31, 0.52);
+  assert.ok(d.w > 0.04 && d.w < 0.05, 'bars of ' + d.w);
+  assert.match(d.text, /^Price: \$\d+\.\d\d – \$\d+\.\d\d /, d.text);
+  ends(d.text).forEach((v, i) => assert.ok(Math.abs(v - (i ? d.mark.hi : d.mark.lo)) <= 0.005 + 1e-9, `${v} for ${i ? d.mark.hi : d.mark.lo}`));
+  assert.notEqual(ends(d.text)[0], ends(d.text)[1], 'the two ends read differently: ' + d.text);
+  assert.match(d.hover, /^Price: \$%\{x:,\.2f\}/);
+  // Bars under a cent wide: a third decimal, so neighbouring bars' edges read differently.
+  d = await day(1, 0.31, 0.52);
+  assert.ok(d.w > 0.001 && d.w < 0.002, 'bars of ' + d.w);
+  assert.match(d.text, /^Price: \$0\.\d{3} – \$0\.\d{3} /, d.text);
+  ends(d.text).forEach((v, i) => assert.ok(Math.abs(v - (i ? d.mark.hi : d.mark.lo)) <= 0.0005 + 1e-9, `${v} for ${i ? d.mark.hi : d.mark.lo}`));
+  assert.match(d.hover, /^Price: \$%\{x:,\.3f\}/);
+  // Bars a dollar wide or more: as before, whole dollars from $10 and cents below it.
+  d = await day(70000, 0.3, 0.5);
+  assert.match(d.text, /^Price: \$[\d,]+ – \$[\d,]+ /, d.text);
+  assert.match(d.hover, /^Price: \$%\{x:,\.0f\}/);
+  d = await day(1100, 0.004, 0.2);
+  assert.ok(d.w >= 1, 'bars of ' + d.w);
+  assert.match(d.text, new RegExp('^Price: \\$' + String(+d.mark.lo.toFixed(2)).replace('.', '\\.') + ' – \\$220 '), d.text);
+});
+
 test('a marked range\'s box fits the plot and the mark: the bands in short, then fewer lines, the range and the days last', async () => {
   const { c, element } = app();
   c.splitMode = false;
