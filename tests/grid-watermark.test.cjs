@@ -83,7 +83,7 @@ test('the video draws the grid, the watermark and every other colour of the char
   assert.equal(constant(page, 'GRID_COLOR'), GRID);
   assert.equal(constant(page, 'WATERMARK_COLOR'), WATERMARK);
   assert.doesNotMatch(page, /Renshu\w*<\/span>|rgba\(255,255,255,0\.08\)/, 'no old watermark annotation or grid colour');
-  assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuTanz<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
+  assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuBTC<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
   assert.equal((page.match(/gridcolor: TH\.grid/g) || []).length, 2);
   // page.html's colours are the site's (index.html CHART_COLORS), colour for colour, the ▲ figure's backing (tagBg) too.
   const c = vm.createContext({ window: { devicePixelRatio: 2 }, document: {}, Math, Date, String, Number, JSON });
@@ -93,15 +93,17 @@ test('the video draws the grid, the watermark and every other colour of the char
   assert.deepEqual(Object.keys(video).sort(), Object.keys(COLORS).sort());
 });
 
-test('the chart, the videos and the contact lines credit @RenshuTanz on X, never the old @RenshuBTC or @RenshuTan', () => {
+test('the chart, the videos and the contact lines credit @RenshuBTC on X, never @RenshuTan or @RenshuTanz, which were given up', () => {
   const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-  // The YouTube channel keeps its own name (youtube.com/@renshuBTC); only the X account was renamed, from RenshuBTC to
-  // RenshuTan and then to RenshuTanz. A link to a name given up can lead to whoever takes it next.
+  // The X account was renamed from RenshuBTC to RenshuTan, then to RenshuTanz, and by 17 Nov 2026 it was RenshuBTC
+  // again (x.com/RenshuTanz answered "This account doesn't exist" that day), as the YouTube channel
+  // (youtube.com/@renshuBTC) and the GitHub account are named. X gives a name up for anyone to take: a link to
+  // RenshuTan or RenshuTanz can lead to whoever takes it next.
   for (const f of ['index.html', 'privacy.html', 'terms.html', 'SECURITY.md', 'README.md', 'tools/video/page.html', 'tools/video/youtube.mjs']) {
-    assert.doesNotMatch(read(f), /x\.com\/Renshu(BTC|Tan)\b|<b>@RenshuBTC<\/b>/i, f);
-    assert.doesNotMatch(read(f), /@RenshuTan\b/i, f);
+    assert.doesNotMatch(read(f), /x\.com\/RenshuTan(z)?\b|<b>@RenshuTan(z)?<\/b>/i, f);
+    assert.doesNotMatch(read(f), /@RenshuTan(z)?\b/i, f);
   }
-  for (const f of ['privacy.html', 'terms.html']) assert.match(read(f), /<a href="https:\/\/x\.com\/RenshuTanz">@RenshuTanz<\/a> on X/, f);
-  assert.match(read('SECURITY.md'), /\[@RenshuTanz\]\(https:\/\/x\.com\/RenshuTanz\) on X/);
-  for (const src of [html, page]) assert.equal((src.match(/<b>@RenshuTanz<\/b>/g) || []).length, 1);
+  for (const f of ['privacy.html', 'terms.html']) assert.match(read(f), /<a href="https:\/\/x\.com\/RenshuBTC">@RenshuBTC<\/a> on X/, f);
+  assert.match(read('SECURITY.md'), /\[@RenshuBTC\]\(https:\/\/x\.com\/RenshuBTC\) on X/);
+  for (const src of [html, page]) assert.equal((src.match(/<b>@RenshuBTC<\/b>/g) || []).length, 1);
 });

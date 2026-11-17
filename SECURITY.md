@@ -66,4 +66,4 @@ Sigstore). To check a copy of any of them:
 
 Please don't open a public issue for a security problem. Report it privately with **Report a vulnerability** on
 this repository's [Security tab](https://github.com/renshuBTC/URPD-History/security), or message
-[@RenshuTanz](https://x.com/RenshuTanz) on X.
+[@RenshuBTC](https://x.com/RenshuBTC) on X.
