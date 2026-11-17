@@ -51,6 +51,130 @@ const refFor = (t, ctx, name) => (t.facts.block ? ctx.refAt(name === "price_clos
 const what = (t) => (t.facts.block ? "block " + t.facts.block.height : t.facts.date);
 const STEP_SIZES = ["1B", "1D", "1W", "1M", "1Y"];
 
+// ---- The price axis zoomed, and the mouse (17 Nov 2026) ---------------------------------------------------------
+// A price label back as dollars: "$95.2K", "$1.26M", "$0.385", "$0".
+export function labelDollars(label) {
+  const m = /^\$((?:\d[\d,]*)?(?:\.\d+)?)([KMBT]?)$/.exec(String(label == null ? "" : label).trim());
+  return m && m[1] !== "" ? Number(m[1].replace(/,/g, "")) * { "": 1, K: 1e3, M: 1e6, B: 1e9, T: 1e12 }[m[2]] : null;
+}
+const TINY = 1e-6;
+const money = (v) => "$" + (Math.abs(v) >= 100 ? Math.round(v).toLocaleString("en-US") : String(+v.toPrecision(4)));
+// What is wrong, if anything, with the prices drawn (range) as a day's way of showing the view asked for (null: the
+// whole axis). The day's bars are w dollars wide and its axis ends at `end`. The page's own words: a view always holds
+// whole bars, ten at the least; it starts at the bar edge nearest the price asked for and is as many bars wide as
+// asked, slid back inside the axis where it would pass an end; one as wide as the axis is the whole axis.
+export function viewFault(range, view, w, end) {
+  const [a, b] = range;
+  if (!(w > 0) || !(end > 0)) return a === 0 && (!(end > 0) || Math.abs(b - end) <= TINY * Math.max(1, end)) ? null : "a view of a day with no axis";
+  const slots = Math.ceil(end / w - 1e-9), wide = view ? (view.hi - view.lo) / w : slots, least = Math.min(10, slots);
+  if (a === 0 && Math.abs(b - end) <= TINY * w) {
+    return !view || Math.max(least, wide) >= slots - 0.5 - TINY ? null : "the whole axis is drawn, the view asked for was " + wide.toFixed(1) + " of its " + slots + " bars";
+  }
+  if (!view) return "a part of the axis (" + money(a) + " to " + money(b) + ") where the whole axis was asked for";
+  const k = a / w, n = (b - a) / w, K = Math.round(k), N = Math.round(n);
+  if (Math.abs(k - K) > TINY || Math.abs(n - N) > TINY) return "part of a bar at an edge of the view: bars " + k.toFixed(3) + " to " + (k + n).toFixed(3);
+  if (N < least) return N + " bars in view, fewer than " + least;
+  if (K < 0 || K + N > slots) return "the view (bars " + K + " to " + (K + N) + ") reaches past the axis's " + slots + " bars";
+  if (wide < least ? N !== least : Math.abs(N - wide) > 0.5 + TINY) return N + " bars in view, " + wide.toFixed(2) + " were asked for";
+  const from = Math.max(0, Math.min(slots - N, view.lo / w));
+  if (Math.abs(K - from) > 0.5 + TINY) return "the view starts at bar " + K + " (" + money(a) + "), the price asked for (" + money(view.lo) + ") is bar " + (view.lo / w).toFixed(2);
+  return null;
+}
+// The pointer's acts (plan.mjs), in words.
+const actWords = (a) => ({ wheel: () => "the wheel turned " + Math.abs(a[2]) + (a[2] < 0 ? " notches away" : " notches towards") + " at " + a[1].toFixed(2),
+  "shift-wheel": () => "Shift and the wheel, " + a[2] + " notches at " + a[1].toFixed(2), sideways: () => "the wheel turned sideways by " + a[2] + " px",
+  drag: () => "a left drag from " + a[1].toFixed(2) + " to " + a[2].toFixed(2), mark: () => "a right drag from " + a[1].toFixed(2) + " to " + a[2].toFixed(2),
+  "ctrl-mark": () => "Ctrl and a left drag from " + a[1].toFixed(2) + " to " + a[2].toFixed(2), click2: () => "two clicks", "right-click2": () => "two right-clicks",
+  key: () => "the " + a[1] + " key", press: () => "the " + a[1] + " arrow" }[a[0]] || (() => JSON.stringify(a)))();
+// What one act of the mouse got wrong, if anything: its state before (b) and after (a), where the pointer was (xs, whole
+// px) and whether the browser's menu was kept shut each time it was asked for. Each rule is the page's own (the
+// explainer's "Zooming the price axis" and "Marking a price range").
+export function actFault(m) {
+  const kind = m.act[0], b = m.before, a = m.after, w = b.binWidth, end = b.axisEnd;
+  const span = (s) => s.range[1] - s.range[0], bars = (s) => span(s) / w, under = (s, x) => s.range[0] + (x - s.plot[0]) / s.plot[2] * span(s);
+  const whole = (s) => s.range[0] === 0 && Math.abs(s.range[1] - s.axisEnd) <= TINY * Math.max(w, 1e-9);
+  const sameRange = a.key === b.key && Math.abs(a.range[0] - b.range[0]) <= TINY * w && Math.abs(a.range[1] - b.range[1]) <= TINY * w;
+  const sameView = JSON.stringify(a.view) === JSON.stringify(b.view), sameMark = JSON.stringify(a.mark) === JSON.stringify(b.mark);
+  const slots = Math.ceil(end / w - 1e-9), least = Math.min(10, slots);
+  const markWords = (k) => (k ? money(k.lo) + " to " + money(k.hi) : "nothing");
+  if (kind !== "press" && a.key !== b.key) return "the chart went from " + b.key + " to " + a.key;
+  if (a.panning) return "the closed hand was left on";
+  if (kind === "wheel" || kind === "shift-wheel" || kind === "sideways") {
+    if (!sameMark) return "the marked range went from " + markWords(b.mark) + " to " + markWords(a.mark);
+    if (!(w > 0) || !(end > 0)) return a.view === null && sameRange ? null : "a day with no axis took a view";
+    if (kind === "wheel") {
+      const x = m.xs[0], nb = bars(b), na = bars(a), slid = (under(a, x) - under(b, x)) / w;
+      if (m.act[2] < 0) {
+        if (na > nb + TINY) return "turned away, the view went from " + nb.toFixed(1) + " to " + na.toFixed(1) + " bars";
+        if (nb > least + TINY && !(na < nb - TINY)) return "turned away, the view stayed " + nb.toFixed(1) + " bars wide";
+        if (na < least - TINY) return na.toFixed(1) + " bars in view, fewer than " + least;
+        if (Math.abs(slid) > 1 + TINY) return "the price under the pointer went from " + money(under(b, x)) + " to " + money(under(a, x)) + ", " + slid.toFixed(2) + " bars";
+      } else {
+        if (na < nb - TINY) return "turned towards, the view went from " + nb.toFixed(1) + " to " + na.toFixed(1) + " bars";
+        if (whole(b)) return whole(a) && a.view === null ? null : "turned towards on the whole axis, the view changed";
+        if (!whole(a) && !(na > nb + TINY)) return "turned towards, the view stayed " + nb.toFixed(1) + " bars wide";
+        // Out, a view that meets an end of the axis stops there, and the price under the pointer has to give.
+        const atEnd = a.range[0] === 0 || a.range[1] >= (slots - TINY) * w;
+        if (!whole(a) && !atEnd && Math.abs(slid) > 1 + TINY) return "the price under the pointer went from " + money(under(b, x)) + " to " + money(under(a, x)) + ", " + slid.toFixed(2) + " bars";
+      }
+      return null;
+    }
+    // Sideways: the view goes along the axis by the turn's distance, as wide as it was, no further than an end.
+    if (whole(b)) return whole(a) && a.view === null ? null : "turned sideways on the whole axis, the view changed";
+    const px = kind === "sideways" ? m.act[2] : m.act[2] * 100, nb = Math.round(bars(b));
+    if (Math.abs(bars(a) - bars(b)) > TINY) return "turned sideways, the view went from " + bars(b).toFixed(1) + " to " + bars(a).toFixed(1) + " bars";
+    const want = Math.max(0, Math.min((slots - nb) * w, b.range[0] + px / b.plot[2] * span(b)));
+    if (Math.abs(a.range[0] - want) > (1 + TINY) * w) return "the view moved " + ((a.range[0] - b.range[0]) / w).toFixed(2) + " bars, the turn was worth " + ((want - b.range[0]) / w).toFixed(2);
+    return null;
+  }
+  if (kind === "drag") {
+    if (!sameMark) return "the left button changed the marked range, from " + markWords(b.mark) + " to " + markWords(a.mark);
+    if (whole(b)) return sameRange && sameView ? null : "a left drag on the whole axis changed the view";
+    if (Math.abs(bars(a) - bars(b)) > TINY) return "the view went from " + bars(b).toFixed(1) + " to " + bars(a).toFixed(1) + " bars";
+    // The price the button went down on is under the pointer where it came up, unless the axis ended first.
+    const n = Math.round(bars(a)), want = Math.max(0, Math.min((slots - n) * w, under(b, m.xs[0]) - (m.xs[1] - a.plot[0]) / a.plot[2] * span(a)));
+    if (Math.abs(a.range[0] - want) > (1 + TINY) * w) return "the view starts " + ((a.range[0] - want) / w).toFixed(2) + " bars from where the pointer took it (" + money(a.range[0]) + ", not " + money(want) + ")";
+    return null;
+  }
+  if (kind === "mark" || kind === "ctrl-mark") {
+    if (!sameRange || !sameView) return "marking moved the view";
+    if (kind === "mark" && !m.menu.length) return "the browser's menu was never asked for, so whether the page keeps it shut is unknown";
+    if (m.menu.some((kept) => !kept)) return "the browser's menu was let open over the chart";
+    const px = span(b) / b.plot[2], lo = under(b, Math.min(m.xs[0], m.xs[1])), hi = Math.min(under(b, Math.max(m.xs[0], m.xs[1])), b.barsEnd);
+    // Past the day's last bar (the price above every bar, a zoomed view of the room beyond them) there is nothing to mark.
+    if (lo >= b.barsEnd - px) return a.mark === null ? null : "marked " + markWords(a.mark) + " past the day's last bar (" + money(b.barsEnd) + ")";
+    if (!a.mark) return "nothing was marked";
+    if (Math.abs(a.mark.lo / w - Math.round(a.mark.lo / w)) > TINY || Math.abs(a.mark.hi / w - Math.round(a.mark.hi / w)) > TINY) return "the mark (" + markWords(a.mark) + ") does not end on bars";
+    // The bars the pointer passed over, to the pixel: the one under each end of the drag is in.
+    if (a.mark.lo > lo + px || a.mark.lo + w < lo - px || a.mark.hi < hi - px || a.mark.hi - w > hi + px) return "marked " + markWords(a.mark) + ", the pointer went from " + money(lo) + " to " + money(hi);
+    return null;
+  }
+  if (kind === "click2") {
+    if (!sameMark) return "two clicks changed the marked range";
+    return a.view === null && whole(a) && !a.zoomed ? null : "two clicks left the view at " + money(a.range[0]) + " to " + money(a.range[1]);
+  }
+  if (kind === "right-click2") {
+    if (!sameRange || !sameView) return "two right-clicks moved the view";
+    if (!m.menu.length) return "the browser's menu was never asked for, so whether the page keeps it shut is unknown";
+    if (m.menu.some((kept) => !kept)) return "the browser's menu was let open over the chart";
+    return a.mark === null ? null : "the marked range is still there: " + markWords(a.mark);
+  }
+  if (kind === "key" && m.act[1] === "Escape") {
+    // A marked range goes first, the view staying; with none, a zoomed axis comes back whole.
+    if (b.mark) return a.mark === null && sameRange && sameView ? null : a.mark ? "the marked range is still there" : "Escape cleared the mark and moved the view too";
+    if (b.view) return a.view === null && whole(a) ? null : "Escape left the view at " + money(a.range[0]) + " to " + money(a.range[1]);
+    return sameRange && sameView ? null : "Escape changed the view with nothing to undo";
+  }
+  if (kind === "press") {
+    if (a.key === b.key) return "the chart stayed on " + b.key;
+    if (!sameView) return "the view asked for changed with the day";
+    if (!sameMark) return "the marked range changed with the day";
+    const fault = viewFault(a.range, a.view, a.binWidth, a.axisEnd);
+    return fault ? "on " + a.key + ": " + fault : null;
+  }
+  return "an act the check does not know";
+}
+
 export const TRACE_CHECKS = [
   {
     id: "draws",
@@ -180,7 +304,9 @@ export const TRACE_CHECKS = [
     seen: "#109, #110: axes that only grow; a zero bin width once dropped a whole day (buildData)",
     applies: (t) => !t.error && !!t.facts && t.facts.raw.supply > 0 && (t.facts.coin || t.facts.raw.value > 0),
     judge(t) {
-      const s = t.facts.bars.filter((b) => b.visible).reduce((a, b) => a + b.sum, 0);
+      // A zoomed view shows part of the day, so its bars are counted on the whole axis, drawn in its place straight after
+      // (collect.mjs); that they are the same bars is the zoom-view check's.
+      const s = t.facts.zoom ? t.facts.zoom.whole.total : t.facts.bars.filter((b) => b.visible).reduce((a, b) => a + b.sum, 0);
       return Math.abs(s - 100) <= 0.01 ? [true] : [false, "the bars add up to " + s.toFixed(4) + "%"];
     },
   },
@@ -219,10 +345,10 @@ export const TRACE_CHECKS = [
   },
   {
     id: "mark-box",
-    failure: "A marked range's box says something untrue, or never finishes: long-term holders (or 0 days) where no coin last moved, no coins where some did, or its days still reading … after 20 s.",
+    failure: "A marked range's box says something untrue, or never finishes: long-term holders (or 0 days) where no coin last moved, no coins where some did, its days still reading … after 20 s, or its two prices not the mark's own to within half a bar.",
     // (Its share lines, removed in #192 and checked for here until the owner asked for them back on 6 Nov 2026, are
     // shown again.)
-    seen: "error analysis: t111 said Already All Long-Term Holders and t116 said 0 Days over ranges holding no coin",
+    seen: "error analysis: t111 said Already All Long-Term Holders and t116 said 0 Days over ranges holding no coin. 17 Nov 2026: a mark from $10.69 to $11.18 on 8 Jun 2011, bars 4.4 cents wide, read \"$11 – $11\" (t202)",
     applies: (t) => !t.error && !!t.facts && !!t.facts.mark,
     judge(t) {
       const f = t.facts, box = markBox(f), words = MARK[f.lang] || MARK.en;
@@ -233,19 +359,29 @@ export const TRACE_CHECKS = [
       // "…" stands in for the days while the daily highs and lows load; the trace waits 20 s for them.
       if (/…/.test(box.text)) return [false, "the days were still loading after 20 s: " + box.text.slice(-60)];
       if (f.coinsInMark === true && !saysLth) return [false, "no days line: " + box.text.slice(0, 80)];
+      // Its two prices are the mark's own ends, each close enough to tell its bar's edge from the next one's (half a bar),
+      // as far as the day's axis goes. (A narrow box breaks the line at the dash: " | " stands for a line break.)
+      const said = /\$(\d[\d,]*(?:\.\d+)?)(?: \|)? –(?: \|)? \$(\d[\d,]*(?:\.\d+)?)/.exec(box.text);
+      if (said && f.binWidth > 0) {
+        const end = f.zoom ? f.zoom.whole.range[1] : f.xRange[1], want = [Math.max(0, f.mark.lo), Math.min(end, f.mark.hi)];
+        const got = [said[1], said[2]].map((x) => Number(x.replace(/,/g, "")));
+        if (Math.abs(got[0] - want[0]) > f.binWidth / 2 || Math.abs(got[1] - want[1]) > f.binWidth / 2) return [false, "the box gives the range as $" + said[1] + " – $" + said[2] + ", the mark is " + money(want[0]) + " to " + money(want[1]) + " and a bar " + money(f.binWidth) + " wide"];
+      }
       return [true];
     },
   },
   {
     id: "mark-edges",
-    failure: "A marked range's white line is drawn over a bar instead of in the gap beside it, so the mark seems to cut a bar and a drag slides instead of moving a bar at a time.",
-    seen: "6 Nov 2026: the owner asked for the drag to go a bar at a time; in Chromium a line covered part of a bar at 36 of 36 drag steps (up to 1.8 px), fixed in #196",
+    failure: "A marked range's white line is drawn over a bar instead of in the gap beside it, so the mark seems to cut a bar and a drag slides instead of moving a bar at a time; or a white line stands where the mark does not end, at the edge of a zoomed view that cuts it short.",
+    seen: "6 Nov 2026: the owner asked for the drag to go a bar at a time; in Chromium a line covered part of a bar at 36 of 36 drag steps (up to 1.8 px), fixed in #196. 17 Nov 2026: 3 of 3 marks cut by a zoomed view had a line at the view's edge, two of them over the last bar in view (t190 to t192)",
     // Where the chart leaves a gap between bars (2 px apart or more); narrower bars are solid and the line takes the
-    // separator's pixel, by design.
-    applies: (t) => !t.error && !!t.facts && !!t.facts.markEdges && t.facts.markEdges.pitch >= 2,
+    // separator's pixel, by design. A mark wholly outside a zoomed view has nothing to draw.
+    applies: (t) => !t.error && !!t.facts && !!t.facts.markEdges && t.facts.markEdges.pitch >= 2 && t.facts.mark.lo < t.facts.xRange[1] && t.facts.mark.hi > t.facts.xRange[0],
     judge(t) {
-      const e = t.facts.markEdges;
-      if (e.lines.length !== 2) return [false, e.lines.length + " white lines, not 2"];
+      const f = t.facts, e = f.markEdges, w = f.binWidth || 0;
+      // A white line is an end of the mark: one for each end the view shows (both, on the whole axis).
+      const ends = (f.mark.lo >= f.xRange[0] - TINY * w ? 1 : 0) + (f.mark.hi <= f.xRange[1] + TINY * w ? 1 : 0);
+      if (e.lines.length !== ends) return [false, e.lines.length + " white lines, and " + ends + (ends === 1 ? " end" : " ends") + " of the mark in view"];
       const over = e.lines.find((l) => l.onBar > 0.05);
       return over ? [false, "a white line over a bar: " + over.onBar + " px of it covered, at " + over.c + " px"] : [true];
     },
@@ -283,6 +419,89 @@ export const TRACE_CHECKS = [
         if (s.notice) return [false, "a notice after " + s.press + ": " + s.notice.slice(0, 100)];
         at = s;
       }
+      return [true];
+    },
+  },
+  {
+    id: "price-labels",
+    failure: "A price label is missing from the axis, repeats its neighbour, is written in thousands to three decimals or (zoomed) with a single decimal, or names another price than its gridline's: on a zoomed view more than a tenth of a step from it, on the whole axis more than its two figures allow.",
+    seen: "17 Nov 2026, the day the wheel zoom went live: a zoomed view labelled $102,571 \"$100K\" (#205), and its last label was missing, hidden by Plotly for the spaces that end-align it (#206); both found on a screenshot, no check read the labels. The same day's review: $9,891 written $9.891K (t172, t174, t180), and $8.05 labelled $8.1 beside a marked range given to the cent (t175, #210)",
+    applies: (t) => !t.error && !!t.facts && !!t.facts.priceLabels,
+    judge(t) {
+      const f = t.facts, p = f.priceLabels, asked = p.asked.filter(Boolean);
+      // What a visitor can see is what the page asked for (Plotly hides a label that reaches past the figure's edge).
+      if (JSON.stringify(p.seen) !== JSON.stringify(asked)) {
+        const gone = asked.filter((x) => !p.seen.includes(x));
+        return [false, gone.length ? "not on screen: " + gone.join(" ") : "on screen: " + p.seen.join(" ") + "; asked for: " + asked.join(" ")];
+      }
+      for (let i = 1; i < asked.length; i++) if (asked[i] === asked[i - 1]) return [false, "two gridlines in a row read " + asked[i]];
+      // A price is not written in thousands or millions to three decimals ($9.891K for $9,891).
+      const odd = asked.find((x) => /\.\d{3,}[KMBT]$/.test(x));
+      if (odd) return [false, "a price written as " + odd];
+      // A zoomed view is read closely: every label within a tenth of a step of its gridline's price. The whole axis
+      // rounds to two figures (three where two would repeat), by design: within half of its second figure.
+      const whole = f.zoom ? f.zoom.whole.range : f.xRange, zoomed = f.xRange[0] > whole[0] || f.xRange[1] < whole[1] - TINY * Math.abs(whole[1]);
+      // And is labelled in whole dollars or in cents, never with a single decimal: not in dimes ($8.1 for $8.05), nor in
+      // cents with the last zero dropped ($11.3). The whole axis's two figures may be.
+      const dime = zoomed && asked.find((x) => /^\$[\d,]+\.\d$/.test(x));
+      if (dime) return [false, "a price written with one decimal: " + dime];
+      const step = p.vals.length > 1 ? Math.abs(p.vals[1] - p.vals[0]) : 0;
+      for (let k = 0; k < p.vals.length; k++) {
+        if (!p.asked[k]) continue;
+        const v = p.vals[k], said = labelDollars(p.asked[k]);
+        if (said === null) return [false, "a label that is not a price: " + p.asked[k]];
+        const room = zoomed ? step / 10 : v > 0 ? 0.5 * Math.pow(10, Math.floor(Math.log10(v)) - 1) : 0;
+        if (Math.abs(said - v) > room * (1 + TINY) + 1e-12) return [false, p.asked[k] + " on the gridline at " + money(v) + (zoomed ? " (a step is " + money(step) + ")" : "")];
+      }
+      return [true];
+    },
+  },
+  {
+    id: "zoom-view",
+    failure: "A zoomed price axis is not the day's own bars at the prices asked for: part of a bar at an edge, fewer than ten, somewhere else, a bar another height or with another share than on the whole axis, a left axis ending anywhere but the lower of the whole axis's top and the tallest bar in view (pinned, at the pin), other than twenty steps, or a price box neither on the price's line nor against the edge the line left by with its arrow.",
+    seen: "#204 (17 Nov 2026): the owner asked for the wheel to zoom the price axis; 20 zoomed views swept that day held to the whole axis, and the faults found were in the labels (price-labels) and the wheel (mouse)",
+    applies: (t) => !t.error && !!t.facts && !!t.facts.zoom,
+    judge(t) {
+      const f = t.facts, z = f.zoom, w = f.binWidth, [a, b] = f.xRange, end = z.whole.range[1];
+      const fault = viewFault(f.xRange, z.asked, w, end);
+      if (fault) return [false, fault];
+      // The bars in view are the day's own: as many as the view holds, each at its price, as tall, with the same running
+      // share and amount behind it.
+      for (const c of z.counts) {
+        if (c.want === null) return [false, "bars the whole axis does not have: " + c.name];
+        if (c.got !== c.want) return [false, c.got + " bars of " + c.name + " in a view that holds " + c.want];
+      }
+      if (z.off.price > 1e-9 * Math.max(w, 1e-9)) return [false, "a bar " + z.off.price + " dollars from its place on the whole axis"];
+      if (z.off.height > 1e-9) return [false, "a bar " + z.off.height + " points taller or shorter than on the whole axis"];
+      if (z.off.share > 1e-9 || z.off.amount > 1e-9) return [false, "a bar's hover differs from the whole axis's (share by " + z.off.share + ", amount by " + z.off.amount + ")"];
+      const whole = a === 0 && Math.abs(b - end) <= TINY * Math.max(w, 1e-9);
+      // The left axis: where the whole axis has it, or at the tallest bar in view when that is lower; a pin stays.
+      const top = f.pinned || whole || !(z.tallest > 0) || z.tallest >= z.whole.yTop ? z.whole.yTop : z.tallest;
+      if (Math.abs(f.yRange[1] - top) > 1e-9 * Math.max(1, top)) return [false, "the left axis ends at " + f.yRange[1] + "%, not " + top + "% (the whole axis's " + z.whole.yTop + "%, the tallest bar in view " + z.tallest + "%" + (f.pinned ? ", pinned" : "") + ")"];
+      // Twenty steps from the first price in view to the last.
+      const v = f.priceLabels.vals;
+      if (v.length !== 21 || Math.abs(v[0] - a) > TINY * w || Math.abs(v[20] - b) > TINY * w) return [false, "the gridlines run from " + money(v[0]) + " to " + money(v[v.length - 1]) + ", the view from " + money(a) + " to " + money(b)];
+      for (let k = 1; k < 21; k++) if (Math.abs(v[k] - v[k - 1] - (b - a) / 20) > TINY * w) return [false, "the gridlines are not twenty equal steps"];
+      // The price box: on the price's dashed line while that is in view; with the line out of view, against the edge it
+      // left by, pointing its way.
+      if (f.spot > 0) {
+        const box = f.annotations.find((x) => x.color && !x.width && x.yref === "paper" && x.y === 1);
+        if (!box) return [false, "no price box"];
+        const first = box.text.split(" | ")[0];
+        if (f.spot < a) { if (!(box.xref === "paper" && box.x === 0 && /^◀ /.test(first) && f.priceLine === null)) return [false, "the price (" + money(f.spot) + ") is left of the view: " + first + (f.priceLine === null ? "" : ", its line drawn at " + money(f.priceLine))]; }
+        else if (f.spot > b) { if (!(box.xref === "paper" && box.x === 1 && / ▶$/.test(first) && f.priceLine === null)) return [false, "the price (" + money(f.spot) + ") is right of the view: " + first + (f.priceLine === null ? "" : ", its line drawn at " + money(f.priceLine))]; }
+        else if (!(box.xref === "x" && box.x === f.spot && f.priceLine === f.spot && !/[◀▶]/.test(first))) return [false, "the price (" + money(f.spot) + ") is in view, but its box or line is not on it: " + first];
+      }
+      return [true];
+    },
+  },
+  {
+    id: "mouse",
+    failure: "The mouse on the chart does not do what the page says: the wheel zooms the wrong way or lets the price under the pointer slide (over a bar), a left drag does not take a zoomed axis with it or marks something, a right drag does not mark the bars it passed over or lets the browser's menu open, two clicks or Escape do not give the whole axis back, two right-clicks or Escape do not clear the mark, or a step to another day loses the view.",
+    seen: "17 Nov 2026: sixteen notches of the wheel at one spot left the price under the pointer up to 2.9 bars from where it began, and 5.7 once turned back (#207); a left drag lost what the pointer moved before it counted as a drag (found before #204 merged)",
+    applies: (t) => !t.error && Array.isArray(t.moused) && t.moused.length > 0,
+    judge(t) {
+      for (const m of t.moused) { const fault = actFault(m); if (fault) return [false, actWords(m.act) + ": " + fault]; }
       return [true];
     },
   },
@@ -343,7 +562,7 @@ export function judge(traces, ctx, site) {
       try { const [pass, why] = c.judge(t, ctx); verdicts[c.id] = { pass: !!pass, why: why || "" }; }
       catch (e) { verdicts[c.id] = { pass: false, why: "check failed to run: " + String(e.message || e).slice(0, 120) }; }
     }
-    return { id: t.id, date: t.shown || t.date, view: t.view, window: t.window, lang: t.lang, settings: t.settings, mark: t.mark, shot: t.shot,
+    return { id: t.id, date: t.shown || t.date, view: t.view, window: t.window, lang: t.lang, settings: t.settings, mark: t.mark, zoom: t.zoom || null, mouse: t.mouse || null, shot: t.shot,
       pass: Object.values(verdicts).every((v) => v.pass), verdicts };
   });
   const siteVerdicts = {};

@@ -26,9 +26,22 @@ const aDay = (t) => !t.facts.block && !stepped(t) && t.facts.spot > 0 && t.facts
 const aBlock = (t) => !!t.facts.block && !stepped(t) && t.facts.spot > 0 && !t.facts.mark && t.window === 'desktop' && t.lang === 'en';
 const NEW_YORK = 't130';   // block 840,000 as New York's clock has it: 19 Apr 2024 20:09 GMT-4
 const priceBox = (t) => t.facts.annotations.find((x) => /Price:/.test(x.text) && !x.width);
+// The price box in any language: the box of coloured lines at the top of the plot that is not a marked range's.
+const priceBoxAny = (t) => t.facts.annotations.find((x) => x.color && !x.width && x.yref === 'paper' && x.y === 1);
 const markBox = (t) => t.facts.annotations.find((x) => x.xref === 'x' && x.width);
 const last = (t) => t.stepped[t.stepped.length - 1];
 function markText(t, text) { markBox(t).text = text; }
+// The price axis zoomed, and the mouse (17 Nov 2026). A trace whose final picture is a part of the price axis, the first
+// act of a kind in a trace of the mouse, and that act altered.
+const span = (r) => r[1] - r[0];
+const zoomed = (t) => !!t.facts.zoom && (t.facts.xRange[0] > 0 || t.facts.xRange[1] < t.facts.zoom.whole.range[1] - 1e-6);
+const cutMark = (t) => zoomed(t) && !!t.facts.mark && !!markBox(t) && (t.facts.mark.lo < t.facts.xRange[0] || t.facts.mark.hi > t.facts.xRange[1]);
+const acted = (kind, also = () => true) => (t) => Array.isArray(t.moused) && t.moused.some((m) => m.act[0] === kind && also(m));
+const act = (t, kind, also = () => true) => t.moused.find((m) => m.act[0] === kind && also(m));
+const isWhole = (s) => s.range[0] === 0 && Math.abs(s.range[1] - s.axisEnd) < 1e-6;
+function mouseFault(kind, also, change) { return () => { const t = good(acted(kind, also)); change(act(t, kind, also), t); return t; }; }
+// Every label of the axis written again, in what the page asked for and in what is on screen.
+function relabel(t, write) { const p = t.facts.priceLabels; p.asked = p.asked.map((x, k) => (x ? write(x, k) : x)); p.seen = p.asked.filter(Boolean); }
 function emptyNote(t) { return t.facts.annotations.some((a) => a.xref === 'paper' && a.yref === 'paper' && a.x === 0.5 && a.y === 0.62); }
 
 // Each failure made from a good trace: which check must catch it, what it reproduces, how.
@@ -87,8 +100,68 @@ const FAILURES = [
   ['mark-box', 'second error analysis: the days still reading … when the trace was taken', () => { const t = good('t123'); markText(t, markBox(t).text.replace(/All LTH Within: .*$/, 'All LTH Within: …')); return t; }],
   ['mark-box', 'coins in the range and no days line', () => { const t = good('t123'); markText(t, markBox(t).text.replace(/ \| All LTH Within: .*$/, '')); return t; }],
 
-  ['mark-edges', 'the owner\'s drag: a white line over a bar', () => { const t = good((x) => x.facts.markEdges && x.facts.markEdges.pitch >= 2); t.facts.markEdges.lines[0].onBar = 1.79; return t; }],
-  ['mark-edges', 'a line missing', () => { const t = good((x) => x.facts.markEdges && x.facts.markEdges.pitch >= 2); t.facts.markEdges.lines.pop(); return t; }],
+  ['mark-edges', 'the owner\'s drag: a white line over a bar', () => { const t = good((x) => x.facts.markEdges && x.facts.markEdges.pitch >= 2 && x.facts.markEdges.lines.length === 2); t.facts.markEdges.lines[0].onBar = 1.79; return t; }],
+  ['mark-edges', 'a line missing', () => { const t = good((x) => x.facts.markEdges && x.facts.markEdges.pitch >= 2 && x.facts.markEdges.lines.length === 2); t.facts.markEdges.lines.pop(); return t; }],
+  // The review of 17 Nov 2026, as the page drew them before #208: a line at the edge of a view that cuts the mark short.
+  ['mark-edges', 't191: a white line at the view\'s edge, where the mark does not end, over the last bar in view', () => { const t = good((x) => cutMark(x) && x.facts.markEdges.pitch >= 2 && x.facts.markEdges.lines.length === 1); t.facts.markEdges.lines.push({ c: 1497.5, w: 1, onBar: 0.99 }); return t; }],
+  ['mark-edges', 't190: the same at the view\'s left edge, beside the first bar', () => { const t = good((x) => cutMark(x) && x.facts.markEdges.pitch >= 2 && x.facts.markEdges.lines.length === 1); t.facts.markEdges.lines.unshift({ c: -0.5, w: 1, onBar: 0 }); return t; }],
+  ['mark-edges', 't192: two lines on a mark wider than the view', () => { const t = good((x) => cutMark(x) && x.facts.markEdges.pitch >= 2 && x.facts.markEdges.lines.length === 0); t.facts.markEdges.lines.push({ c: -0.5, w: 1, onBar: 0 }, { c: 1497.5, w: 1, onBar: 0.99 }); return t; }],
+  ['mark-box', 't202: a mark from $10.69 to $11.17, bars 4.4 cents wide, read "$11 – $11"', () => { const t = good((x) => x.facts.mark && x.facts.binWidth > 0.01 && x.facts.binWidth < 0.1 && markBox(x) && /\$\d+\.\d\d –/.test(markBox(x).text)); markText(t, markBox(t).text.replace(/\$[\d.]+ –(?: \|)? \$[\d.]+/, '$11 – $11')); return t; }],
+  ['mark-box', '18 May 2010: bars a sixth of a cent wide, and the range to the cent', () => { const t = good((x) => x.facts.mark && x.facts.binWidth < 0.01 && markBox(x) && /\$0\.\d{3} –/.test(markBox(x).text)); markText(t, markBox(t).text.replace(/\$(0\.\d\d)\d –(?: \|)? \$(0\.\d\d)\d/, '$$$1 – $$$2')); return t; }],
+  ['mark-box', 'another range\'s prices in the box', () => { const t = good('t123'); markText(t, markBox(t).text.replace(/\$[\d,]+ – \$[\d,]+/, '$885 – $1,335')); return t; }],
+
+  ['bars-total', 'bars lost on a day that was then zoomed', () => { const t = good(zoomed); t.facts.zoom.whole.total = 97.2; return t; }],
+
+  // The two faults of the day the wheel zoom went live, and the third the review found, each as the page drew it then.
+  ['price-labels', '#205: a zoomed view labelled to two figures, $113,231 as "$110K"', () => { const t = good((x) => zoomed(x) && x.facts.priceLabels.vals[20] > 1e5 && x.facts.priceLabels.asked[20]); relabel(t, (x, k) => (k === 20 ? '$' + Math.round(t.facts.priceLabels.vals[20] / 1e4) * 10 + 'K' : x)); return t; }],
+  ['price-labels', '#206: a zoomed view\'s last label asked for and not on screen', () => { const t = good((x) => zoomed(x) && x.facts.priceLabels.asked[20]); t.facts.priceLabels.seen.pop(); return t; }],
+  ['price-labels', 't172: $9,891 written $9.891K', () => { const t = good((x) => zoomed(x) && /^\$\d,\d{3}$/.test(x.facts.priceLabels.asked[0])); relabel(t, (x) => (/^\$\d,\d{3}$/.test(x) ? x.replace(',', '.') + 'K' : x)); return t; }],
+  ['price-labels', 't175: a zoomed view of 8 Jun 2011 labelled in dimes, $8.1 for $8.05', () => { const t = good((x) => zoomed(x) && x.facts.priceLabels.asked.filter(Boolean).every((l) => /^\$\d+\.\d\d$/.test(l)) && x.facts.priceLabels.vals[1] - x.facts.priceLabels.vals[0] > 0.15); relabel(t, (x) => '$' + Number(x.slice(1)).toFixed(1)); return t; }],
+  ['price-labels', 't176: a view in cents with a last zero dropped, $11.3 between $11.22 and $11.38', () => { const t = good((x) => zoomed(x) && x.facts.priceLabels.asked.filter(Boolean).some((l) => /^\$\d+\.\d0$/.test(l))); relabel(t, (x) => x.replace(/(\.\d)0$/, '$1')); return t; }],
+  ['price-labels', 'two gridlines in a row reading the same', () => { const t = good(aDay); relabel(t, (x, k) => (k === 3 ? t.facts.priceLabels.asked[2] : x)); return t; }],
+  ['price-labels', 'the whole axis labelled a gridline along', () => { const t = good(aDay); const was = t.facts.priceLabels.asked.slice(); assert.ok(was.every(Boolean)); relabel(t, (x, k) => (k === 0 ? x : k < 20 ? was[k + 1] : was[1])); return t; }],
+  ['price-labels', 'a label on the whole axis that Plotly hid', () => { const t = good(aDay); t.facts.priceLabels.seen.splice(5, 1); return t; }],
+
+  ['zoom-view', 'part of a bar at the view\'s left edge', () => { const t = good(zoomed); t.facts.xRange[0] += t.facts.binWidth / 3; return t; }],
+  ['zoom-view', 'nine bars in view', () => { const t = good((x) => zoomed(x) && Math.round(span(x.facts.xRange) / x.facts.binWidth) === 10); t.facts.xRange[1] -= t.facts.binWidth; return t; }],
+  ['zoom-view', 'the view two bars along from the prices asked for', () => { const t = good((x) => zoomed(x) && x.facts.xRange[0] > 0 && !x.facts.mark && x.facts.xRange[1] < x.facts.zoom.whole.range[1] - 3 * x.facts.binWidth); t.facts.xRange[0] += 2 * t.facts.binWidth; t.facts.xRange[1] += 2 * t.facts.binWidth; return t; }],
+  ['zoom-view', 'a view half as wide as was asked for', () => { const t = good((x) => zoomed(x) && !x.facts.mark && span(x.facts.xRange) / x.facts.binWidth > 40); t.facts.xRange[1] = t.facts.xRange[0] + Math.round(span(t.facts.xRange) / t.facts.binWidth / 2) * t.facts.binWidth; return t; }],
+  ['zoom-view', 'a view kept where none was asked for', () => { const t = good(zoomed); t.facts.zoom.asked = null; return t; }],
+  ['zoom-view', 'a bar another height than on the whole axis', () => { const t = good(zoomed); t.facts.zoom.off.height = 0.004; return t; }],
+  ['zoom-view', 'a bar\'s running share counted over the view, not the day', () => { const t = good(zoomed); t.facts.zoom.off.share = 3.2; return t; }],
+  ['zoom-view', 'a bar missing from the view', () => { const t = good(zoomed); t.facts.zoom.counts[0].got -= 1; return t; }],
+  ['zoom-view', 'the left axis left at the whole axis\'s top over a quiet stretch of prices', () => { const t = good((x) => zoomed(x) && !x.facts.pinned && x.facts.zoom.tallest > 0 && x.facts.zoom.tallest < x.facts.zoom.whole.yTop * 0.9); t.facts.yRange[1] = t.facts.zoom.whole.yTop; return t; }],
+  ['zoom-view', 'a pinned Y-axis moved to the tallest bar in view', () => { const t = good((x) => zoomed(x) && x.facts.pinned && x.facts.zoom.tallest > 0 && x.facts.zoom.tallest < x.facts.zoom.whole.yTop * 0.999); t.facts.yRange[1] = t.facts.zoom.tallest; return t; }],
+  ['zoom-view', 'nineteen steps of gridlines', () => { const t = good(zoomed); const p = t.facts.priceLabels; p.vals.pop(); if (p.asked.pop()) p.seen.pop(); return t; }],
+  ['zoom-view', 'the price left of the view and its box still on its line', () => { const t = good((x) => zoomed(x) && x.facts.spot > 0 && x.facts.spot < x.facts.xRange[0]); const b = priceBoxAny(t); b.xref = 'x'; b.x = t.facts.spot; b.text = b.text.replace('◀ ', ''); return t; }],
+  ['zoom-view', 'the price right of the view and no arrow on its box', () => { const t = good((x) => zoomed(x) && x.facts.spot > x.facts.xRange[1]); const b = priceBoxAny(t); b.text = b.text.replace(' ▶', ''); return t; }],
+  ['zoom-view', 'the dashed line drawn for a price out of view', () => { const t = good((x) => zoomed(x) && x.facts.spot > 0 && x.facts.spot < x.facts.xRange[0]); t.facts.priceLine = t.facts.spot; return t; }],
+  ['zoom-view', 'the price in view and its box against the edge', () => { const t = good((x) => zoomed(x) && x.facts.spot >= x.facts.xRange[0] && x.facts.spot <= x.facts.xRange[1]); const b = priceBoxAny(t); b.xref = 'paper'; b.x = 1; return t; }],
+
+  // The mouse. #207, as measured on the live page before it: the price under the pointer almost three bars off.
+  ['mouse', '#207: sixteen notches of the wheel left the price under the pointer 2.8 bars off', mouseFault('wheel', (m) => m.act[2] <= -12, (m) => { const by = 2.8 * m.after.binWidth; m.after.range = m.after.range.map((v) => v - by); })],
+  ['mouse', 'the wheel turned away made the view wider', mouseFault('wheel', (m) => m.act[2] < 0 && !isWhole(m.before), (m) => { m.after.range = [m.before.range[0] - 20 * m.before.binWidth, m.before.range[1] + 20 * m.before.binWidth]; })],
+  ['mouse', 'the wheel turned away did nothing', mouseFault('wheel', (m) => m.act[2] < 0 && isWhole(m.before), (m) => { m.after = copy(m.before); })],
+  ['mouse', 'the wheel turned towards zoomed in', mouseFault('wheel', (m) => m.act[2] > 0 && !isWhole(m.before) && !isWhole(m.after), (m) => { const w = m.before.binWidth, c = (m.before.range[0] + m.before.range[1]) / 2; m.after.range = [Math.round((c - 6 * w) / w) * w, Math.round((c + 6 * w) / w) * w]; })],
+  ['mouse', 'the wheel changed the whole axis when turned towards', mouseFault('wheel', (m) => m.act[2] > 0 && isWhole(m.before), (m) => { m.after.range = [0, m.after.range[1] - 30 * m.after.binWidth]; m.after.view = { lo: 0, hi: m.after.range[1] }; })],
+  ['mouse', 'the wheel turned sideways zoomed instead', mouseFault('sideways', (m) => !isWhole(m.before), (m) => { m.after.range = [m.before.range[0], m.before.range[1] - 8 * m.before.binWidth]; })],
+  ['mouse', 'Shift and the wheel went the other way along the axis', mouseFault('shift-wheel', (m) => !isWhole(m.before), (m) => { const by = m.after.range[0] - m.before.range[0]; assert.ok(Math.abs(by) > 3 * m.before.binWidth); m.after.range = m.before.range.map((v) => v - by); })],
+  ['mouse', 'a left drag moved the axis half as far as the pointer', mouseFault('drag', (m) => !isWhole(m.before) && Math.abs(m.after.range[0] - m.before.range[0]) > 6 * m.before.binWidth, (m) => { const w = m.before.binWidth, by = Math.round((m.after.range[0] - m.before.range[0]) / 2 / w) * w; m.after.range = m.before.range.map((v) => v + by); })],
+  ['mouse', 'a left drag marked a range, as it did before the right button took that over', mouseFault('drag', (m) => !m.before.mark, (m) => { m.after.mark = { lo: m.after.range[0], hi: m.after.range[0] + 10 * m.after.binWidth }; })],
+  ['mouse', 'a left drag moved the whole axis', mouseFault('drag', (m) => isWhole(m.before), (m) => { m.after.range = [10 * m.after.binWidth, m.after.range[1]]; m.after.view = { lo: m.after.range[0], hi: m.after.range[1] }; })],
+  ['mouse', 'the closed hand left on after a drag', mouseFault('drag', () => true, (m) => { m.after.panning = true; })],
+  ['mouse', 'a right drag moved the axis and marked nothing', mouseFault('mark', (m) => !isWhole(m.before), (m) => { m.after.mark = null; m.after.range = m.before.range.map((v) => v + 5 * m.before.binWidth); })],
+  ['mouse', 'a right drag marked two bars short of where it stopped', mouseFault('mark', () => true, (m) => { m.after.mark.hi -= 2 * m.before.binWidth; })],
+  ['mouse', 'a right drag marked nothing', mouseFault('mark', (m) => !m.before.mark, (m) => { m.after.mark = null; })],
+  ['mouse', 'the browser\'s menu opened over the chart at a right drag', mouseFault('mark', () => true, (m) => { m.menu = [false]; })],
+  ['mouse', 'Ctrl and the left button moved the axis, on a mouse with one button', mouseFault('ctrl-mark', (m) => !isWhole(m.before), (m) => { m.after.mark = copy(m.before.mark); m.after.range = m.before.range.map((v) => v - 4 * m.before.binWidth); })],
+  ['mouse', 'two clicks left the view zoomed', mouseFault('click2', (m) => !isWhole(m.before), (m) => { m.after = copy(m.before); })],
+  ['mouse', 'two right-clicks left the mark', mouseFault('right-click2', (m) => !!m.before.mark, (m) => { m.after.mark = copy(m.before.mark); })],
+  ['mouse', 'the browser\'s menu opened at the second right-click', mouseFault('right-click2', () => true, (m) => { m.menu = [true, false]; })],
+  ['mouse', 'Escape gave the whole axis back while a range was still marked', mouseFault('key', (m) => !!m.before.mark && !!m.before.view, (m) => { m.after.mark = copy(m.before.mark); m.after.view = null; m.after.range = [0, m.after.axisEnd]; })],
+  ['mouse', 'Escape left a zoomed view with nothing marked', mouseFault('key', (m) => !m.before.mark && !!m.before.view, (m) => { m.after = copy(m.before); })],
+  ['mouse', 'a step to the next day gave the whole axis back', mouseFault('press', (m) => !!m.before.view, (m) => { m.after.view = null; m.after.range = [0, m.after.axisEnd]; })],
+  ['mouse', 'a step to the next day drew the view on part-bars', mouseFault('press', (m) => !!m.before.view, (m) => { m.after.range = m.after.range.map((v) => v + m.after.binWidth / 2); })],
 
   ['block-steps', '1B back from a day went to the day before, not the block before its last', () => { const t = good('t154'); Object.assign(last(t), { key: '2026-11-14', date: '2026-11-14', isBlock: false }); return t; }],
   ['block-steps', '1B forward from a day went to the next day, not its first block', () => { const t = good('t155'); Object.assign(last(t), { key: '2020-05-12', date: '2020-05-12', isBlock: false }); return t; }],
@@ -128,6 +201,12 @@ test('the labelled examples cover every check, its good traces and its failures'
   for (const l of ['en', 'zh', 'ja']) assert.ok(has((t) => t.lang === l && !t.facts.block) && has((t) => t.lang === l && t.facts.block), l + ', a day and a block');
   assert.ok(new Set(fixture.good.filter((t) => t.facts.block).map((t) => t.facts.tz)).size >= 4, 'blocks in four time zones');
   assert.ok(has((t) => t.facts.mark && t.facts.block) && has((t) => t.facts.date === fixture.inProgress && !t.facts.block));
+  // The price axis zoomed: the price in view, left and right of it, ten bars, a pin, a block, another language, bars
+  // under a dollar wide, a mark the view cuts at either end and one wider than it; and every act of the mouse.
+  assert.ok(has((t) => zoomed(t) && t.facts.spot >= t.facts.xRange[0] && t.facts.spot <= t.facts.xRange[1]) && has((t) => zoomed(t) && t.facts.spot > 0 && t.facts.spot < t.facts.xRange[0]) && has((t) => zoomed(t) && t.facts.spot > t.facts.xRange[1]));
+  assert.ok(has((t) => zoomed(t) && t.facts.pinned) && has((t) => zoomed(t) && t.facts.block) && has((t) => zoomed(t) && t.lang !== 'en') && has((t) => zoomed(t) && t.facts.binWidth < 1));
+  assert.ok(has((t) => cutMark(t) && t.facts.mark.lo < t.facts.xRange[0] && t.facts.mark.hi <= t.facts.xRange[1]) && has((t) => cutMark(t) && t.facts.mark.hi > t.facts.xRange[1] && t.facts.mark.lo >= t.facts.xRange[0]) && has((t) => cutMark(t) && t.facts.markEdges.lines.length === 0));
+  for (const kind of ['wheel', 'shift-wheel', 'sideways', 'drag', 'mark', 'ctrl-mark', 'click2', 'right-click2', 'key', 'press']) assert.ok(has(acted(kind)), 'a trace with ' + kind);
 });
 
 test('every check passes the good traces it applies to (true negative rate 1)', async () => {
@@ -266,4 +345,55 @@ test('the collector looks for the page\'s notice by whether it is displayed', ()
   const code = fs.readFileSync(path.join(__dirname, '..', 'evals', 'collect.mjs'), 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   assert.doesNotMatch(code, /offsetParent/);
   assert.equal((code.match(/getComputedStyle\((?:s|status)\)\.display !== "none"/g) || []).length, 3, 'in the facts, while waiting for a chart, and after each press');
+});
+
+test('a price label is read back as dollars', async () => {
+  const { labelDollars } = await load();
+  assert.deepEqual(['$95.2K', '$1.26M', '$0.385', '$0', '$1,234', '$102,570', '$9.50', '$1,000.5K', '$2B'].map(labelDollars), [95200, 1260000, 0.385, 0, 1234, 102570, 9.5, 1000500, 2e9]);
+  assert.deepEqual(['', 'K', '$', '95.2K', '$1.2X', null].map(labelDollars), [null, null, null, null, null, null]);
+  // Every label the site drew, on the whole axis and zoomed, in every language.
+  for (const t of fixture.good) for (const x of t.facts.priceLabels.asked) if (x) assert.equal(typeof labelDollars(x), 'number', x + ' on ' + t.id);
+});
+
+test('the prices drawn are held to the view asked for as the page says a day shows one', async () => {
+  const { viewFault } = await load();
+  const w = 200, end = 626 * w;
+  assert.equal(viewFault([0, end], null, w, end), null, 'the whole axis, nothing asked for');
+  assert.equal(viewFault([50000, 80000], { lo: 50030, hi: 80110 }, w, end), null, 'rounded to bar edges');
+  assert.equal(viewFault([50200, 80400], { lo: 50130, hi: 80310 }, w, end), null);
+  assert.equal(viewFault([50000, 52000], { lo: 50000, hi: 50300 }, w, end), null, 'never fewer than ten bars');
+  assert.equal(viewFault([105200, 125200], { lo: 120000, hi: 140000 }, w, end), null, 'slid back inside the axis');
+  assert.equal(viewFault([0, 20000], { lo: -5000, hi: 15000 }, w, end), null);
+  assert.equal(viewFault([0, end], { lo: 60000, hi: 500000 }, w, end), null, 'wider than the axis: the whole axis');
+  assert.equal(viewFault([0, end], { lo: 0, hi: end - 60 }, w, end), null, 'as wide as the axis, to the bar');
+  assert.equal(viewFault([0, 131300], null, w, 131300), null, 'an axis that ends past its last bar, at the price');
+  assert.equal(viewFault([127400, 131400], { lo: 130000, hi: 134000 }, w, 131300), null, 'and a view against that end');
+  assert.equal(viewFault([0, 0], null, 0, 0), null, 'a day with no axis');
+  assert.match(viewFault([50100, 80000], { lo: 50030, hi: 80110 }, w, end), /part of a bar/);
+  assert.match(viewFault([50000, 51800], { lo: 50000, hi: 50300 }, w, end), /9 bars in view, fewer than 10/);
+  assert.match(viewFault([50400, 80400], { lo: 50030, hi: 80110 }, w, end), /starts at bar 252/);
+  assert.match(viewFault([50000, 70000], { lo: 50030, hi: 80110 }, w, end), /100 bars in view, 150\.40 were asked for/);
+  assert.match(viewFault([0, end], { lo: 50030, hi: 80110 }, w, end), /the whole axis is drawn/);
+  assert.match(viewFault([50000, 80000], null, w, end), /where the whole axis was asked for/);
+  assert.match(viewFault([120000, 126000], { lo: 120000, hi: 126000 }, w, end), /reaches past the axis/);
+});
+
+test('the review\'s own traces of 17 Nov 2026, as the page drew them before #207 and #208, fail the checks made for them', async () => {
+  // The checks were written against these before the page was fixed: each fault found by eye in that run is one a check
+  // now names, and the traces without one pass (evals/README.md). They are kept as the made failures above; this holds
+  // the three checks' reasons to what was on screen.
+  const { TRACE_CHECKS } = await load();
+  const byId = Object.fromEntries(TRACE_CHECKS.map((c) => [c.id, c]));
+  const why = (id, t) => byId[id].judge(t, ctx)[1];
+  const made = (what) => FAILURES.find(([, w]) => w.startsWith(what))[2]();
+  assert.match(why('mark-edges', made('t191')), /^2 white lines, and 1 end of the mark in view$/);
+  assert.match(why('mark-edges', made('t192')), /^2 white lines, and 0 ends of the mark in view$/);
+  assert.match(why('mark-box', made('t202')), /^the box gives the range as \$11 – \$11, the mark is \$\d+\.\d+ to \$\d+\.\d+ and a bar \$0\.0\d+ wide$/);
+  assert.match(why('price-labels', made('t172')), /^a price written as \$\d\.\d{3}K$/);
+  assert.match(why('price-labels', made('#205')), /^\$1\d0K on the gridline at \$1\d\d,\d{3} \(a step is \$[\d,]+\)$/);
+  assert.match(why('price-labels', made('#206')), /^not on screen: \$/);
+  assert.match(why('price-labels', made('t175')), /^a price written with one decimal: \$\d+\.\d$/);
+  assert.match(why('price-labels', made('t176')), /^a price written with one decimal: \$\d+\.\d$/);
+  assert.match(why('price-labels', made('the whole axis labelled a gridline along')), /^\$[\d.]+[KM]? on the gridline at \$[\d.,]+$/);
+  assert.match(why('mouse', made('#207')), /^the wheel turned 1\d notches away at 0\.\d\d: the price under the pointer went from \$[\d,]+ to \$[\d,]+, -[23]\.\d\d bars$/);
 });

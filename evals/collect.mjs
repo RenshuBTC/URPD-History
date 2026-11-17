@@ -1,9 +1,10 @@
 // Draws each trace of a plan on the site in headless Chromium and records what a visitor gets: the facts behind the
 // picture (the day's or block's data and its totals, the chart's bars, axes, words and where they sit on screen, the
 // toolbar, errors in the console) and, with shots, a screenshot. It drives the page through its own functions (goTo,
-// goToBlock, setViewMode, ...), as the toolbar does, presses the real step buttons where a trace asks for steps, and
-// computes what the checks compare against independently of the page's code where it can (the totals, the share of
-// coins at or below the price, whether a marked range holds any coin).
+// goToBlock, setViewMode, ...), as the toolbar does, presses the real step buttons where a trace asks for steps, turns
+// the real wheel and holds the real mouse buttons where it asks for the mouse, and computes what the checks compare
+// against independently of the page's code where it can (the totals, the share of coins at or below the price, whether
+// a marked range holds any coin, a zoomed view's bars against the whole axis drawn in its place).
 
 import fs from "node:fs";
 import path from "node:path";
@@ -98,6 +99,16 @@ function pageFacts() {
     notice: status && getComputedStyle(status).display !== "none" && status.textContent.trim() ? status.textContent.trim() : "",
     loading: getComputedStyle(document.getElementById("loading")).display !== "none",
     xRange: L.xaxis && L.xaxis.range, yRange: L.yaxis && L.yaxis.range, bars, annotations: anns,
+    // The price axis: the view asked for (null: all of it), whether the page shows the hand for a view that can be
+    // dragged, each gridline's price with the label asked for it, and the labels a visitor can see (Plotly hides one
+    // that reaches past the figure's edge by making it transparent, which the layout does not tell).
+    view: window.priceView ? { lo: priceView.lo, hi: priceView.hi } : null, binWidth: d.binWidth, zoomedClass: document.body.classList.contains("zoomed"),
+    pinned: !!(document.getElementById("btnPeak") && document.getElementById("btnPeak").classList.contains("active")),
+    priceLabels: { vals: ((L.xaxis || {}).tickvals || []).slice(), asked: ((L.xaxis || {}).ticktext || []).map((x) => String(x).replace(/\u00a0/g, "")),
+      seen: [...gd.querySelectorAll(".xaxislayer-above .xtick text")].filter((el) => { const cs = getComputedStyle(el); return cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity) > 0 && el.getBoundingClientRect().width > 0; })
+        .map((el) => el.textContent.replace(/\u00a0/g, "")) },
+    // The dashed line at the day's price, where the chart draws one.
+    priceLine: (() => { const sh = (L.shapes || []).find((x) => x.type === "line" && x.xref === "x" && x.yref === "paper" && x.line && x.line.dash === "dash"); return sh ? sh.x0 : null; })(),
     legend: box(gd.querySelector("g.legend")), titleBox: box(gd.querySelector(".g-gtitle text") || gd.querySelector(".gtitle")),
     // The dot on the selected day: a page element over the chart, so it hides whatever it sits on.
     tracer: (() => { const el = document.getElementById("tracer"); return el && getComputedStyle(el).display !== "none" ? box(el) : null; })(),
@@ -108,6 +119,56 @@ function pageFacts() {
     page: { innerWidth, innerHeight, scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight },
     youtube: [...document.querySelectorAll("#ytMenu a.yt-item")].map((a) => a.href),
   };
+}
+
+// Runs in the page before and after each act of the mouse: the day on screen, the view asked for and the prices
+// drawn, the marked range, and where the plot is.
+function mouseState() {
+  const gd = document.getElementById("chart"), L = gd.layout || {}, fl = gd._fullLayout, r = gd.getBoundingClientRect(), d = window.lastRenderedData;
+  // Where the day's whole axis ends: at its last bar, or just past the price where that is beyond every bar.
+  const bars = d.aggAll.length * d.binWidth;
+  return { key: d.key || d.dateStr, binWidth: d.binWidth, barsEnd: bars, axisEnd: d.spot > bars ? d.spot * 1.01 : bars, view: priceView ? { lo: priceView.lo, hi: priceView.hi } : null,
+    range: L.xaxis.range.slice(), mark: rangeMark ? { lo: rangeMark.lo, hi: rangeMark.hi } : null,
+    zoomed: document.body.classList.contains("zoomed"), panning: document.body.classList.contains("panning"),
+    plot: [r.left + fl.xaxis._offset, r.top + fl.yaxis._offset, fl.xaxis._length, fl.yaxis._length] };
+}
+
+// Runs in the page once a trace that zoomed has been read and pictured: draws the whole axis in the view's place, as
+// a double-click does, and holds the bars that were on screen to the whole axis's own at the same prices. Every bar of
+// a view has to be a bar of the day, as tall, with the same running share and amount in its hover.
+async function againstWhole() {
+  const gd = document.getElementById("chart");
+  const read = () => ({ range: gd.layout.xaxis.range.slice(), yTop: gd.layout.yaxis.range[1],
+    bars: gd.data.filter((t) => t.type === "bar").map((t) => ({ name: t.meta || t.name, visible: t.visible !== "legendonly" && t.visible !== false, x: Array.from(t.x), y: Array.from(t.y),
+      share: (t.customdata || []).map((c) => c[1]), amount: (t.customdata || []).map((c) => c[2]) })) });
+  const seen = read(), asked = priceView ? { lo: priceView.lo, hi: priceView.hi } : null, w = lastRenderedData.binWidth;
+  priceView = null;
+  await rerenderCurrent();
+  for (let i = 0; i < 3; i++) { await chartRenderPromise; await new Promise((res) => setTimeout(res, 120)); }
+  const whole = read();
+  const k0 = w > 0 ? Math.round(seen.range[0] / w) : 0, n = w > 0 ? Math.round((seen.range[1] - seen.range[0]) / w) : 0;
+  const off = { price: 0, height: 0, share: 0, amount: 0 }, counts = [];
+  for (const b of seen.bars) {
+    const o = whole.bars.find((x) => x.name === b.name);
+    if (!o) { counts.push({ name: b.name, got: b.x.length, want: null }); continue; }
+    counts.push({ name: b.name, got: b.x.length, want: Math.max(0, Math.min(n, o.x.length - k0)) });
+    for (let k = 0; k < b.x.length && k0 + k < o.x.length; k++) {
+      off.price = Math.max(off.price, Math.abs(b.x[k] - o.x[k0 + k]));
+      off.height = Math.max(off.height, Math.abs(b.y[k] - o.y[k0 + k]));
+      off.share = Math.max(off.share, Math.abs(b.share[k] - o.share[k0 + k]));
+      off.amount = Math.max(off.amount, Math.abs(b.amount[k] - o.amount[k0 + k]) / Math.max(1, Math.abs(o.amount[k0 + k])));
+    }
+  }
+  // The tallest bar among those that were in view, each bar every band of it, and the whole day's bars added up.
+  let tallest = 0, total = 0;
+  const slots = whole.bars.length ? whole.bars[0].x.length : 0;
+  for (let k = 0; k < slots; k++) {
+    let h = 0;
+    for (const o of whole.bars) if (o.visible) h += o.y[k] > 0 ? o.y[k] : 0;
+    total += h;
+    if (k >= k0 && k < k0 + n && h > tallest) tallest = h;
+  }
+  return { asked, seen: { range: seen.range, yTop: seen.yTop }, whole: { range: whole.range, yTop: whole.yTop, bars: slots, total }, off, counts, tallest };
 }
 
 // Polls a condition in the page until it holds. Not page.waitForFunction: Playwright 1.47 runs that through eval, which
@@ -149,6 +210,56 @@ async function atRest(page) {
   for (let i = 0; i < 3; i++) { await page.evaluate(() => chartRenderPromise); await page.waitForTimeout(300); }
 }
 
+// After the wheel or a mouse button: the frame the page waits for before it draws, and the drawing.
+async function drawn(page) {
+  await page.waitForTimeout(80);
+  for (let i = 0; i < 3; i++) { await page.evaluate(() => chartRenderPromise); await page.waitForTimeout(150); }
+}
+
+// One act of the mouse on the chart (see plan.mjs), done with the real pointer, and what it left: the page's state
+// before and after, where the pointer was in whole px (what the page is told), and whether the browser's own menu was
+// kept shut each time it was asked for (a right button going down asks).
+async function act(page, a) {
+  const before = await page.evaluate(mouseState), [left, top, width, height] = before.plot;
+  const X = (f) => Math.round(left + f * width), y = Math.round(top + 0.55 * height), xs = [];
+  await page.evaluate(() => { window.__evalMenu.length = 0; });
+  const kind = a[0];
+  if (kind === "wheel" || kind === "shift-wheel") {
+    xs.push(X(a[1]));
+    await page.mouse.move(xs[0], y);
+    if (kind === "shift-wheel") await page.keyboard.down("Shift");
+    for (let k = 0; k < Math.abs(a[2]); k++) { await page.mouse.wheel(0, a[2] < 0 ? -100 : 100); await page.waitForTimeout(30); }
+    if (kind === "shift-wheel") await page.keyboard.up("Shift");
+  } else if (kind === "sideways") {
+    xs.push(X(a[1]));
+    await page.mouse.move(xs[0], y);
+    await page.mouse.wheel(a[2], 0);
+  } else if (kind === "drag" || kind === "mark" || kind === "ctrl-mark") {
+    const button = kind === "mark" ? "right" : "left", x0 = X(a[1]), x1 = X(a[2]);
+    xs.push(x0, x1);
+    await page.mouse.move(x0, y);
+    if (kind === "ctrl-mark") await page.keyboard.down("Control");
+    await page.mouse.down({ button });
+    for (let k = 1; k <= 12; k++) { await page.mouse.move(Math.round(x0 + (x1 - x0) * k / 12), y); await page.waitForTimeout(16); }
+    await page.waitForTimeout(120);
+    await page.mouse.up({ button });
+    if (kind === "ctrl-mark") await page.keyboard.up("Control");
+  } else if (kind === "click2" || kind === "right-click2") {
+    const button = kind === "click2" ? "left" : "right";
+    xs.push(X(a[1]));
+    await page.mouse.move(xs[0], y);
+    await page.mouse.down({ button }); await page.mouse.up({ button });
+    await page.waitForTimeout(90);
+    await page.mouse.down({ button }); await page.mouse.up({ button });
+  } else if (kind === "key") await page.keyboard.press(a[1]);
+  else if (kind === "press" && (a[1] === "next" || a[1] === "prev")) await page.click(a[1] === "next" ? "#btnNext" : "#btnPrev");
+  else throw new Error("unknown act of the mouse: " + JSON.stringify(a));
+  if (kind === "press") await atRest(page); else await drawn(page);
+  // A marked range's box reads "…" for its days until the daily highs and lows are in (see the marked range below).
+  if (kind === "mark" || kind === "ctrl-mark") { await until(page, () => !window.priceHighLowLoading, null, 20000).catch(() => {}); await drawn(page); }
+  return { act: a, xs, before, after: await page.evaluate(mouseState), menu: await page.evaluate(() => window.__evalMenu.slice()) };
+}
+
 async function getJSON(url) {
   const r = await fetch(url, { signal: AbortSignal.timeout(60000), headers: { "user-agent": "bitcoinurpd-evals" } });
   if (!r.ok) throw new Error("HTTP " + r.status + " for " + url);
@@ -177,6 +288,8 @@ export async function collect(plan, { site, outDir, shots = false, log = console
     await until(page, () => !!(window.allDates && allDates.length && window.lastRenderedData));
     await page.waitForTimeout(800);
     const defaults = await page.evaluate(() => JSON.stringify(captureChartSettings()));
+    // Every time the browser's own menu is asked for, and whether the page kept it shut (it listens first, on the window).
+    await page.evaluate(() => { window.__evalMenu = []; document.addEventListener("contextmenu", (e) => window.__evalMenu.push(e.defaultPrevented)); });
     pages[id] = { page, events, defaults, firstLoadMs: Date.now() - t0 };
     return pages[id];
   }
@@ -186,10 +299,11 @@ export async function collect(plan, { site, outDir, shots = false, log = console
     events.length = 0;
     const date = await page.evaluate((d) => d === "latest" ? allDates[allDates.length - 1] : d === "latest-complete" ? allDates[allDates.length - 2] : d, tr.date);
     if (!(await page.evaluate((d) => allDates.indexOf(d) >= 0, date))) throw new Error("the site does not list " + date);
-    // Back to the defaults (a day, stepping 1D, nothing marked), then this trace's view, language and settings, as the
-    // toolbar sets them.
+    // Back to the defaults (a day, stepping 1D, nothing marked, the whole price axis), then this trace's view, language
+    // and settings, as the toolbar sets them. The pointer is parked off the chart, where it hovers over nothing.
+    await page.mouse.move(3, 3);
     await page.evaluate(([def, view, bars, lng, s]) => {
-      rangeMark = null; if (window.peakStore) for (const k in peakStore) delete peakStore[k];
+      rangeMark = null; priceView = null; if (window.peakStore) for (const k in peakStore) delete peakStore[k];
       restoreChartSettings(JSON.parse(def)); viewIdx = view; coinMode = view === 1; splitMode = bars === "split"; yMaxPct = yMaxByMode[viewIdx];
       if (s.bins) NUM_BINS = s.bins; if (s.smoothing !== undefined) KERNEL_PCT = s.smoothing; if (s.ymax) { yMaxPct = s.ymax; yMaxByMode[viewIdx] = s.ymax; }
       if (stepIdx !== 1) setInterval1(1);
@@ -210,7 +324,8 @@ export async function collect(plan, { site, outDir, shots = false, log = console
     }
     // What the trace asks to see: a day or a block (after presses of the step buttons, wherever those lead: the
     // block-steps check follows them).
-    const asked = tr.steps ? { date: null, height: null } : { date: height === null ? date : null, height };
+    const moves = !!tr.steps || (tr.mouse || []).some((a) => a[0] === "press");
+    const asked = moves ? { date: null, height: null } : { date: height === null ? date : null, height };
     let key = date;
     if (height !== null) {
       key = "h" + height;
@@ -257,13 +372,32 @@ export async function collect(plan, { site, outDir, shots = false, log = console
       await until(page, () => !window.priceHighLowLoading, null, 20000).catch(() => {});
       await page.waitForTimeout(400); await page.evaluate(() => chartRenderPromise); await page.waitForTimeout(300);
     }
+    if (tr.zoom) {   // a view of the price axis, as the wheel leaves it: prices to show, here as parts of the whole axis
+      await page.evaluate((z) => {
+        const end = document.getElementById("chart").layout.xaxis.range[1];
+        priceView = { lo: z[0] * end, hi: z[1] * end };
+        rerenderCurrent();
+      }, tr.zoom);
+      await drawn(page);
+    }
+    // The mouse itself, one act after another, and what each left.
+    let moused = null;
+    if (tr.mouse) {
+      moused = [];
+      for (const a of tr.mouse) moused.push(await act(page, a));
+      key = moused[moused.length - 1].after.key;
+      await page.mouse.move(3, 3);
+      await drawn(page);
+    }
     // The page keeps the raw buckets of its ten latest days only and draws a day it has seen before from its binned
     // copy, so a day drawn again may have none: fetch them, or every total would read zero (found when the checks
     // were first run, on the language traces, which come back to days drawn earlier).
     await page.evaluate(async (k) => { if (!rawComplete(rawCache[k])) await fetchRaw(k); }, key);
     const facts = await page.evaluate(pageFacts);
     if (shotFile) await page.screenshot({ path: path.join(outDir, shotFile) });
-    return { shown: facts.block ? "block " + facts.block.height : facts.date, asked, facts, stepped, events: events.slice() };
+    // A trace that zoomed, or could have: what was on screen against the whole axis, drawn in its place.
+    if (tr.zoom || tr.mouse) facts.zoom = await page.evaluate(againstWhole);
+    return { shown: facts.block ? "block " + facts.block.height : facts.date, asked, facts, stepped, moused, events: events.slice() };
   }
   for (const tr of plan.traces) {
     const started = Date.now(), shot = shots ? path.join("shots", tr.id + ".png") : null;

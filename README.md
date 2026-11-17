@@ -176,8 +176,8 @@ pull requests. After editing an inline script in `index.html`, run
 The evals ([evals/README.md](evals/README.md)) check the live chart the way a visitor sees it. Every day the Evals
 workflow draws a sample of days in headless Chromium, in every view and in other windows and languages, and checks
 each one: it draws, it is the day asked for, its supply, realized cap, LTH/STH split and coins in profit match
-Bitcoin Research Kit's own series, its words are clear of each other and true, and the video menu and axis history
-are current. Run them with `node evals/run.mjs` after `npm ci --ignore-scripts` and `npx playwright install
+Bitcoin Research Kit's own series, its words are clear of each other and true, a zoomed price axis shows the day's
+own bars, the real wheel and mouse buttons do what the page says, and the video menu and axis history are current. Run them with `node evals/run.mjs` after `npm ci --ignore-scripts` and `npx playwright install
 chromium` in `evals/`.
 
 ## Credits

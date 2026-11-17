@@ -5,14 +5,26 @@
 // Days are either fixed (landmarks, the edges of the history, the latest days) or random from a seeded generator, so a
 // plan is the same every time it is made from the same seed.
 //
-//   plan("review")       the error-analysis set: 161 traces, every dimension (about 9 minutes)
+//   plan("review")       the error-analysis set: 205 traces, every dimension (about 14 minutes)
 //   plan("daily", seed)  the monitoring sample: the latest days in every view and the newest block, plus random days,
-//                        blocks, windows, languages, time zones, settings, marked ranges and steps that change with
-//                        the seed (one a day), so the history is covered over time (about a minute)
+//                        blocks, windows, languages, time zones, settings, marked ranges, steps, a zoomed view and
+//                        the mouse itself, which change with the seed (one a day), so the history is covered over
+//                        time (about two minutes)
 //
 // A block is given as a height, or by where it falls: "tip" (the newest block), or the trace's day's "first", "mid",
 // "before-last" or "last" block. Steps are the toolbar's own buttons, pressed in turn: "1B", "1D", "1W", "1M", "1Y" (the
 // step size), "prev" and "next" (the arrows).
+//
+// A zoomed price axis (the wheel, #204) comes two ways. `zoom` is the part of the day's price axis to show, as two
+// fractions of the whole axis, set as the wheel leaves it (like `mark`, the fractions a marked range covers). `mouse` is
+// the pointer itself at work on the chart, one act after another, each done with the real mouse where x is how far
+// across the plot it is (0 its left edge, 1 its right):
+//   ["wheel", x, notches]        the wheel turned at x: notches < 0 away from the visitor (in), > 0 towards (out)
+//   ["sideways", x, px]          the wheel turned sideways by px      ["shift-wheel", x, notches]  the same, with Shift
+//   ["drag", x0, x1]             the left button held down from x0 to x1
+//   ["mark", x0, x1]             the right button held down from x0 to x1     ["ctrl-mark", x0, x1]  Ctrl and the left
+//   ["click2", x]                two quick clicks                     ["right-click2", x]  two quick right-clicks
+//   ["key", "Escape"]            a key                                ["press", "next"]    a toolbar arrow, "prev" or "next"
 
 export const WINDOWS = { desktop: [1600, 1000], laptop: [1280, 720], wide: [1920, 1080], phone: [390, 844], landscape: [844, 390] };
 export const VIEWS = ["usd-lthsth", "usd-age", "btc-lthsth", "btc-age"];
@@ -45,7 +57,7 @@ export function plan(kind = "daily", seed = Number(new Date().toISOString().slic
   const traces = [];
   let n = 0;
   const add = (date, why, view, extra = {}) => traces.push({ id: "t" + String(++n).padStart(3, "0"), date, why, view,
-    window: "desktop", lang: "en", settings: {}, mark: null, block: null, tz: null, steps: null, ...extra });
+    window: "desktop", lang: "en", settings: {}, mark: null, block: null, tz: null, steps: null, zoom: null, mouse: null, ...extra });
   if (kind === "review") {
     const rand = generator(20261104);
     const days = [...LANDMARKS.map(([d, why]) => ({ date: d, why })),
@@ -104,6 +116,66 @@ export function plan(kind = "daily", seed = Number(new Date().toISOString().slic
     add("2019-06-26", "1W forward from a block: a week on from its day", "usd-age", { block: "first", steps: ["1W", "next"] });
     add("latest", "1B forward past the newest block: nothing happens", "btc-lthsth", { block: "tip", steps: ["1B", "next"], tz: "Asia/Singapore" });
     add("2012-11-28", "the number keys 1 to 5 pick the step size", "usd-lthsth", { steps: ["key:1", "prev", "key:2", "next"] });
+    // The price axis zoomed (added 17 Nov 2026, with the wheel of #204): the latest day in every view; the price in
+    // view, left of it and right of it; both ends of the axis; as close as it goes, as wide as the axis and reaching past
+    // its end; bars under a dollar wide and a day with nothing to draw; every setting; other windows and languages;
+    // blocks; and a marked range in view, cut by either edge of the view, wider than it and outside it.
+    for (const v of VIEWS) add("latest-complete", "the latest complete day, zoomed", v, { zoom: [0.62, 0.90] });
+    add("latest", "the day in progress, zoomed", "usd-lthsth", { zoom: [0.55, 0.95] });
+    add("2022-11-21", "zoomed about the price at a cycle bottom", "usd-age", { zoom: [0.10, 0.40] });
+    add("2022-11-21", "the price left of the view", "btc-lthsth", { zoom: [0.50, 0.80] });
+    add("2022-11-21", "the price right of the view", "usd-lthsth", { zoom: [0.00, 0.12] });
+    add("2021-11-10", "the first bars, in % BTC", "btc-age", { zoom: [0.00, 0.05] });
+    add("2021-11-10", "the last bars, at a cycle top", "usd-age", { zoom: [0.93, 1.00] });
+    add("2017-12-17", "as close as it goes: ten bars", "btc-lthsth", { zoom: [0.50, 0.50] });
+    add("2024-04-20", "as wide as the axis: the whole axis", "usd-lthsth", { zoom: [0.00, 0.9996] });
+    add("2013-11-29", "reaching past the end of the axis: slid back inside", "usd-age", { zoom: [0.97, 1.30] });
+    add("2011-06-08", "bars under a dollar wide", "btc-lthsth", { zoom: [0.20, 0.60] });
+    add("2011-06-08", "bars under a dollar wide, close up", "usd-age", { zoom: [0.41, 0.47] });
+    add("2010-07-18", "zoomed on a day with nothing to draw", "usd-age", { zoom: [0.30, 0.60] });
+    add("2012-11-28", "zoomed, 50 bins", "usd-lthsth", { zoom: [0.30, 0.55], settings: { bins: 50 } });
+    add("2020-03-12", "zoomed, 1000 bins", "btc-age", { zoom: [0.05, 0.30], settings: { bins: 1000 } });
+    add("2015-01-14", "zoomed, bars too narrow for a gap", "usd-age", { zoom: [0.10, 0.90], settings: { bins: 1000 }, window: "laptop" });
+    add("2018-12-15", "zoomed, no smoothing", "btc-lthsth", { zoom: [0.02, 0.20], settings: { smoothing: 0 } });
+    add("2016-07-09", "zoomed, Y-max 90", "usd-lthsth", { zoom: [0.20, 0.60], settings: { ymax: 90 } });
+    add("2020-05-11", "zoomed, the Y-axis pinned", "btc-age", { zoom: [0.30, 0.70], settings: { pin: true } });
+    add("2025-10-06", "zoomed, on a laptop, in Chinese", "usd-age", { zoom: [0.75, 1.00], window: "laptop", lang: "zh" });
+    add("2024-03-14", "the price right of the view, on a wide screen, in Japanese", "btc-lthsth", { zoom: [0.00, 0.10], window: "wide", lang: "ja" });
+    add("2019-06-26", "the price left of the view, in Chinese", "usd-lthsth", { zoom: [0.70, 0.95], lang: "zh" });
+    add("2024-04-20", "halving 4's block, zoomed", "usd-age", { block: 840000, zoom: [0.40, 0.70], tz: "America/New_York" });
+    add("latest", "the newest block, zoomed", "btc-lthsth", { block: "tip", zoom: [0.60, 0.90], tz: "Asia/Singapore" });
+    add("2023-06-01", "a marked range inside the view", "usd-age", { mark: [0.30, 0.45], zoom: [0.25, 0.50] });
+    add("2021-04-14", "a marked range cut by the view's left edge", "usd-lthsth", { mark: [0.30, 0.45], zoom: [0.40, 0.70] });
+    add("2019-06-26", "a marked range cut by the view's right edge", "btc-age", { mark: [0.30, 0.45], zoom: [0.20, 0.40] });
+    add("2022-06-18", "a marked range wider than the view", "btc-lthsth", { mark: [0.20, 0.80], zoom: [0.40, 0.60] });
+    add("2024-03-14", "a marked range outside the view", "usd-age", { mark: [0.05, 0.12], zoom: [0.50, 0.80] });
+    // The mouse itself (see the top of this file): the wheel in and out at one spot, the left drag, the wheel sideways,
+    // the right drag and the two ways to clear what it marks, the two ways back to the whole axis, the ends of the axis,
+    // a view carried across days, and what none of them does on the whole axis.
+    add("latest-complete", "the wheel in and back out at one spot, then the left drag", "usd-lthsth",
+      { mouse: [["wheel", 0.80, -16], ["wheel", 0.80, 13], ["drag", 0.50, 0.72], ["drag", 0.60, 0.21]] });
+    add("2021-11-10", "the wheel in, sideways, with Shift, then two clicks", "btc-age",
+      { mouse: [["wheel", 0.31, -12], ["sideways", 0.31, 300], ["shift-wheel", 0.31, -3], ["wheel", 0.55, 4], ["click2", 0.50]] });
+    add("2022-11-21", "zoomed, the right drag marks and two right-clicks clear", "usd-age",
+      { mouse: [["wheel", 0.25, -6], ["mark", 0.30, 0.52], ["drag", 0.40, 0.55], ["right-click2", 0.45]] });
+    add("2017-12-17", "a mark on the whole axis, zoomed over, then Escape twice", "btc-lthsth",
+      { mouse: [["mark", 0.20, 0.60], ["wheel", 0.40, -5], ["key", "Escape"], ["key", "Escape"]] });
+    add("2024-04-20", "the whole axis: a left drag and the wheel out do nothing; in as far as it goes and all the way out", "usd-lthsth",
+      { window: "laptop", mouse: [["drag", 0.30, 0.60], ["wheel", 0.50, 3], ["wheel", 0.50, -45], ["wheel", 0.50, 60]] });
+    add("2020-05-11", "a view carried to the next day and back", "btc-age",
+      { mouse: [["wheel", 0.40, -8], ["press", "next"], ["press", "prev"], ["wheel", 0.40, 3]] });
+    add("2013-11-29", "against the ends of the axis", "usd-age",
+      { window: "wide", mouse: [["wheel", 0.03, -7], ["drag", 0.20, 0.95], ["wheel", 0.97, -4], ["sideways", 0.50, 4000], ["drag", 0.80, 0.10]] });
+    add("2024-04-20", "the mouse on a block", "usd-lthsth",
+      { block: 840000, tz: "UTC", mouse: [["wheel", 0.50, -9], ["mark", 0.40, 0.43], ["drag", 0.50, 0.44], ["wheel", 0.62, 5]] });
+    add("2011-06-08", "the mouse on a day with bars under a dollar wide", "usd-lthsth",
+      { mouse: [["wheel", 0.45, -10], ["drag", 0.30, 0.70], ["mark", 0.50, 0.60]] });
+    add("latest-complete", "a marked range kept while the axis moves under it", "btc-lthsth",
+      { lang: "zh", mouse: [["wheel", 0.85, -7], ["mark", 0.10, 0.90], ["drag", 0.50, 0.30], ["wheel", 0.50, 2], ["key", "Escape"]] });
+    add("2010-07-18", "the mouse on a day with nothing to draw", "usd-age",
+      { mouse: [["wheel", 0.50, -4], ["mark", 0.30, 0.50], ["right-click2", 0.40], ["click2", 0.40]] });
+    add("2022-06-18", "Ctrl and the left button mark, for a mouse with one button", "btc-age",
+      { mouse: [["ctrl-mark", 0.30, 0.50], ["wheel", 0.40, -3], ["ctrl-mark", 0.60, 0.20]] });
     return { kind, seed: 20261104, windows: WINDOWS, traces };
   }
   if (kind !== "daily") throw new Error("unknown plan " + kind);
@@ -124,5 +196,13 @@ export function plan(kind = "daily", seed = Number(new Date().toISOString().slic
     { block: pickOf(["first", "mid", "before-last"]), tz: pickOf(ZONES), lang: pickOf(["en", "en", "zh", "ja"]) });
   add(randomDays(rand, 1, "2011-02-01", "2026-10-01")[0], "1B back, then forward twice, from a random day", pickOf(VIEWS),
     { steps: ["1B", "prev", "next", "next"], tz: pickOf(ZONES) });
+  // The price axis zoomed: the latest complete day on a random stretch of prices, and the mouse itself on a random
+  // day (the wheel in and part of the way back at one spot, a drag either way, a marked range, and one of the ways out).
+  const z = rand() * 0.85;
+  add("latest-complete", "the latest complete day, zoomed on a random stretch of prices", pickOf(VIEWS), { zoom: [z, z + 0.03 + rand() * 0.4] });
+  const at = 0.05 + rand() * 0.9, to = 0.1 + rand() * 0.8, m = 0.05 + rand() * 0.6;
+  add(randomDays(rand, 1, "2011-02-01", "2026-10-01")[0], "the mouse on a random day", pickOf(VIEWS), { window: pickOf(["desktop", "desktop", "laptop", "wide"]),
+    mouse: [["wheel", at, -(4 + Math.floor(rand() * 12))], ["wheel", at, 1 + Math.floor(rand() * 3)], ["drag", 0.5, to], ["mark", m, m + 0.05 + rand() * 0.3],
+      pickOf([["right-click2", 0.5], ["key", "Escape"], ["click2", 0.5], ["press", "prev"]])] });
   return { kind, seed, windows: WINDOWS, traces };
 }
