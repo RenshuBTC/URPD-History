@@ -285,7 +285,7 @@ test('landmark markers sit on the line\'s own extreme within a week, labelled in
   assert.equal(graph.layout.yaxis3.range[1], 67000, 'the line still fills the height');
 });
 
-test('a click and drag marks a range of prices instead of zooming; it stays, with its share of the day and the days until every coin there is long-term', async () => {
+test('a marked range of prices stays, with its share of the day and the days until every coin there is long-term; Plotly itself neither zooms nor pans', async () => {
   const { c, element } = app();
   c.splitMode = false;                                          // in AGE: the box lists the age bands
   const { dates, raws } = market(c, { start: '2021-09-01', n: 60, close: () => 60000, cohorts: () => [{ 100: 1, 60000: 1, 70000: 2 }] });
@@ -295,7 +295,7 @@ test('a click and drag marks a range of prices instead of zooming; it stays, wit
   const flat = a => a.text.replace(/<br>/g, ' ').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   await c.renderChart(data);
   let gd = element('chart'), L = gd.layout;
-  assert.equal(L.dragmode, false, 'Plotly neither zooms nor pans');
+  assert.equal(L.dragmode, false, 'Plotly neither zooms nor pans: the page reads the mouse itself (tests/zoom.test.cjs)');
   assert.equal(gd.config.doubleClick, false);
   for (const b of ['zoom2d', 'pan2d', 'select2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']) assert.ok(gd.config.modeBarButtonsToRemove.includes(b), b);
   for (const ax of ['xaxis', 'yaxis', 'xaxis2', 'yaxis3']) assert.equal(L[ax].fixedrange, true, ax);
@@ -399,9 +399,9 @@ test('a marked range\'s white lines sit between bars, never on one, and a drag m
       const near = seps.reduce((b, s) => Math.abs(s - centre) < Math.abs(b - centre) ? s : b, Infinity);
       if (Math.abs(near - centre) < pitch / 2) assert.ok(Math.abs(near - centre) < 0.011, `${label}: on the separator (${what})`);
     };
-    // A drag from 30% of the way along, a pixel at a time.
+    // A drag with the right button from 30% of the way along, a pixel at a time.
     const x0 = Math.round(0.3 * W) + 0.4;
-    gd.emit('mousedown', { button: 0, clientX: x0, clientY: 300 });
+    gd.emit('mousedown', { button: 2, clientX: x0, clientY: 300 });
     let inside = null;
     for (let dx = 5; dx <= 45; dx++) {
       win.mousemove.forEach(f => f({ clientX: x0 + dx, clientY: 300, preventDefault() {} }));
