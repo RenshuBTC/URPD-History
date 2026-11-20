@@ -597,6 +597,34 @@ test('the page\'s own error messages are in the page\'s language, and follow it'
   assert.equal(c.errorText(new Error('HTTP 404')), 'HTTP 404', 'technical messages stay as they are');
 });
 
+test('what the browser kept is taken only as the pins this page writes: anything else is left out', () => {
+  // Error analysis, 20 Nov 2026, with the store as a returning visitor's browser can hand it back. A height kept as
+  // text stopped every chart from drawing ("v.toFixed is not a function"); an entry that was no pin left PIN Y-AXIS
+  // pressed over a scale that was not pinned; a store that was a word could not take a pin, and one that was a list
+  // lost it at the next visit.
+  const open = (kept) => {
+    const stored = kept === undefined ? {} : { bsd_peaks_v3: typeof kept === 'string' ? kept : JSON.stringify(kept) };
+    const localStorage = { getItem: k => (k in stored ? stored[k] : null), setItem: (k, v) => { stored[k] = String(v); } };
+    return { c: app({ localStorage }).c, stored };
+  };
+  const held = (kept) => JSON.parse(JSON.stringify(open(kept).c.peakStore));
+  const pin = { 'usd%|b625|s0.24': ['2026-11-19', 1.2], 'btc%|b300|s1': ['2015-01-14', 0.4] };
+  assert.deepEqual(held(pin), pin, 'pins as the page writes them are kept as they are');
+  assert.deepEqual(held({ 'usd%|b625|s0.24': ['2026-11-19', '1.2'] }), {}, 'a height written as text');
+  assert.deepEqual(held({ 'usd%|b625|s0.24': 'abc', 'btc%|b625|s0': 5, 'usd%|b400|s0': null, 'usd%|b500|s0': { 0: 'a', 1: 2 } }), {}, 'entries that are no pins');
+  assert.deepEqual(held({ a: ['2026-11-19', 0], b: ['2026-11-19', -3], c: ['2026-11-19', NaN], d: ['2026-11-19', 1e999], e: [20261119, 2], f: ['2026-11-19'], g: [] }), {}, 'no height above zero, or no day');
+  assert.deepEqual(held({ 'usd%|b625|s0.24': ['2026-11-19', 1.2, 'more'], bad: 'x' }), { 'usd%|b625|s0.24': ['2026-11-19', 1.2] }, 'the pins among them are kept, as a day and a height');
+  for (const kept of ['"oops"', '[1,2]', '5', 'true', 'null', '{not json', '']) assert.deepEqual(held(kept), {}, kept + ' is no store of pins');
+  assert.deepEqual(held(undefined), {}, 'a first visit');
+  // And a pin made after any of them is kept for the next visit.
+  const { c, stored } = open('"oops"');
+  c.peakStore['usd%|b625|s0.24'] = ['2026-11-20', 1.8]; c.peakSave();
+  assert.deepEqual(JSON.parse(stored.bsd_peaks_v3), { 'usd%|b625|s0.24': ['2026-11-20', 1.8] });
+  const list = open('[1,2]');
+  list.c.peakStore['usd%|b625|s0.24'] = ['2026-11-20', 1.8]; list.c.peakSave();
+  assert.deepEqual(JSON.parse(list.stored.bsd_peaks_v3), { 'usd%|b625|s0.24': ['2026-11-20', 1.8] }, 'a list could be pinned on and wrote itself back without the pin');
+});
+
 test('pins measured on the price axis before it ended exactly at the highest stamp are never looked up; new ones are kept', () => {
   // v2 heights came from bars about 0.5% wider (the axis ran past the highest stamp), so a v2 pin would freeze the
   // axis at a height no bar on the page has; v1 and RAW's pins are older still.

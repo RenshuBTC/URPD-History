@@ -6,7 +6,7 @@
      tools/update-csp.cjs), Plotly from its CDN (also pinned by the integrity hash below), the Source Code Pro
      font, and data from this site and bitview.space. Any other script, frame, plugin, form or connection is
      refused, so even injected markup could neither run code nor send anything anywhere else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-Vw88yt4vaEkTTDmDPenCKMDVgYwt9kdd0bYKepo7pvc=' 'sha256-WFWbrSaj+l7OKURk8e1Npf3naP+pLL/gmeaGR46y1wM=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VUi/sbMcu7oIyrC0ntIBL5N3bKUIbLpw4QlbJb6iZsk=' 'sha256-sQenDeKMUDmrjUmPT4BboOelMag+OcGRuBvPdyLLrmg=' 'sha256-WFWbrSaj+l7OKURk8e1Npf3naP+pLL/gmeaGR46y1wM=' https://cdn.plot.ly/plotly-2.27.0.min.js; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://bitview.space; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 // A phone gets the chart at desktop proportions rather than a reflowed one: the whole
@@ -484,8 +484,22 @@ var lastRenderedPeakKey = null; // settings that produced that peak, even while 
 // before and a v2 height no longer compares (v2: bars binned on the growing axis; v1 before that). Older pins are
 // simply never looked up, RAW's among them.
 var PEAK_STORE_KEY = "bsd_peaks_v3";
+// What the browser kept is taken only as what this page writes: for each setting combination, a day and a height
+// above zero. Anything else is left out. Kept as it came, a height written as text stopped every chart from drawing
+// ("v.toFixed is not a function"), an entry that was no pin left PIN Y-AXIS pressed over a scale that was not pinned,
+// and a store that was a word or a list could not take a pin, or lost it at the next visit (20 Nov 2026).
+function keptPeaks(text) {
+  var kept = null, out = {};
+  try { kept = JSON.parse(text); } catch (e) {}
+  if (kept && typeof kept === "object" && !Array.isArray(kept)) for (var k in kept) {
+    var p = kept[k];
+    if (Object.prototype.hasOwnProperty.call(kept, k) && Array.isArray(p) && typeof p[0] === "string" &&
+        typeof p[1] === "number" && isFinite(p[1]) && p[1] > 0) out[k] = [p[0], p[1]];
+  }
+  return out;
+}
 var peakStore = (function() {
-  try { return JSON.parse(localStorage.getItem(PEAK_STORE_KEY)) || {}; } catch (e) { return {}; }
+  try { return keptPeaks(localStorage.getItem(PEAK_STORE_KEY)); } catch (e) { return {}; }
 })();
 function peakKey(data) {
   return (coinMode ? "btc" : "usd") + "%|b" + (data ? data.numBins : NUM_BINS) + "|s" + (data ? data.kernelPct : KERNEL_PCT);

@@ -399,8 +399,59 @@ export async function collect(plan, { site, outDir, shots = false, log = console
     if (tr.zoom || tr.mouse) facts.zoom = await page.evaluate(againstWhole);
     return { shown: facts.block ? "block " + facts.block.height : facts.date, asked, facts, stepped, moused, events: events.slice() };
   }
+  // The pin's side of a page: what PIN Y-AXIS says, what the browser holds, and what the left axis is drawn to.
+  const pinFacts = () => {
+    const key = peakKey(), held = Object.prototype.hasOwnProperty.call(peakStore, key) ? peakStore[key] : null;
+    let top = null;
+    try { top = document.getElementById("chart").layout.yaxis.range[1]; } catch (e) {}
+    return { pressed: document.getElementById("btnPeak").getAttribute("aria-pressed") === "true", key, held: held === undefined ? null : held, kept: (() => { try { return localStorage.getItem(PEAK_STORE_KEY); } catch (e) { return null; } })(),
+      top, dayTop: lastDayPeak, date: lastRenderedData ? lastRenderedData.dateStr : null };
+  };
+  // A browser that kept something from an earlier visit (`kept`: the page's localStorage, each value as it is or as
+  // JSON), opened afresh in a window of its own: the page as it comes up, with nothing set from here, then PIN Y-AXIS
+  // pressed once, as a visitor presses it.
+  async function drawKept(tr, shotFile) {
+    const [w, h] = plan.windows[tr.window];
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, timezoneId: tr.tz || undefined });
+    const page = await ctx.newPage(), events = [];
+    page.on("console", (m) => { if (m.type() === "error") events.push("console error: " + m.text().slice(0, 300) + ((m.location() || {}).url ? " [" + m.location().url.slice(0, 140) + "]" : "")); });
+    page.on("pageerror", (e) => events.push("page error: " + String(e).slice(0, 300)));
+    page.on("requestfailed", (r) => { if (!/youtube|google/.test(r.url())) events.push("request failed: " + r.url().slice(0, 140) + " " + ((r.failure() || {}).errorText || "")); });
+    page.on("response", (r) => { if (r.status() >= 400) events.push("HTTP " + r.status() + ": " + r.url().slice(0, 140)); });
+    try {
+      await page.addInitScript((kept) => { try { for (const k in kept) localStorage.setItem(k, typeof kept[k] === "string" ? kept[k] : JSON.stringify(kept[k])); } catch (e) {} }, tr.kept);
+      await page.goto(site, { waitUntil: "load", timeout: 120000 });
+      try { await until(page, () => !!(window.allDates && allDates.length && window.lastRenderedData), null, 90000); }
+      catch (e) { if (shotFile) await page.screenshot({ path: path.join(outDir, shotFile) }).catch(() => {}); throw e; }
+      await page.mouse.move(3, 3);
+      await atRest(page);
+      const opened = await page.evaluate(pinFacts);
+      const key = await page.evaluate(() => lastRenderedData.key || lastRenderedData.dateStr);
+      await page.evaluate(async (k) => { if (!rawComplete(rawCache[k])) await fetchRaw(k); }, key);
+      const facts = await page.evaluate(pageFacts);
+      if (shotFile) await page.screenshot({ path: path.join(outDir, shotFile) });
+      await page.click("#btnPeak");
+      await page.mouse.move(3, 3);
+      await atRest(page);
+      facts.pin = { opened, pressed: await page.evaluate(pinFacts) };
+      return { shown: facts.date, asked: { date: null, height: null }, facts, stepped: null, moused: null, events: events.slice() };
+    } finally { await ctx.close(); }
+  }
   for (const tr of plan.traces) {
     const started = Date.now(), shot = shots ? path.join("shots", tr.id + ".png") : null;
+    if (tr.kept) {
+      // (No second try: what was kept is the same the second time, and so is what the page makes of it.)
+      try {
+        const got = await drawKept(tr, shot);
+        traces.push({ ...tr, ...got, ms: Date.now() - started, shot, tries: 1, firstError: null });
+        log(tr.id, got.shown, tr.view, tr.window, "a browser that kept: " + JSON.stringify(tr.kept).slice(0, 70), Date.now() - started + " ms", got.events.length ? got.events.length + " console/network events" : "");
+      } catch (e) {
+        const why = String(e.message || e).slice(0, 400);
+        traces.push({ ...tr, error: why, firstError: null, tries: 1, events: [], shot });
+        log(tr.id, "ERROR", why.slice(0, 200));
+      }
+      continue;
+    }
     // A page that does not come up is opened once more after 20 s, as a draw is tried once more below.
     let P, opened = null;
     for (let attempt = 1; attempt <= 2 && !P; attempt++) {
