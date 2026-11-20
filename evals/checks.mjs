@@ -45,7 +45,10 @@ const emptyNote = (f) => f.annotations.find((a) => a.xref === "paper" && a.yref 
 const overlap = (a, b) => a && b && a[0] < b[2] - 0.5 && b[0] < a[2] - 0.5 && a[1] < b[3] - 0.5 && b[1] < a[3] - 0.5;
 // The data checks leave out the day in progress: its reference moves with every block while the run is reading it. A
 // block is settled once it is mined, the newest one included.
-const settledDay = (t, ctx) => !t.error && !!t.facts && (t.facts.block ? true : t.facts.date !== ctx.inProgress);
+// The day in progress: the run's newest day, and whatever day a page shows as it opens (a trace of a browser that kept
+// something is the page as it came up, on the newest day there was then).
+const inProgress = (t, ctx) => t.facts.date === ctx.inProgress || !!t.kept;
+const settledDay = (t, ctx) => !t.error && !!t.facts && (t.facts.block ? true : !inProgress(t, ctx));
 // BRK's own figure for what a trace shows: at the block's height, or on the day.
 const refFor = (t, ctx, name) => (t.facts.block ? ctx.refAt(name === "price_close" ? "price" : name, t.facts.block.height) : ctx.ref(name, t.facts.date));
 const what = (t) => (t.facts.block ? "block " + t.facts.block.height : t.facts.date);
@@ -208,7 +211,7 @@ export const TRACE_CHECKS = [
       const td = titleDay(f.title);
       if (td !== f.date) return [false, "the title names " + td + ": " + f.title];
       if (!String(f.counter).startsWith(f.dayNumber + "/" + f.days)) return [false, "the counter reads " + f.counter + ", day " + f.dayNumber + " of " + f.days];
-      if (f.date === ctx.inProgress) return [true];
+      if (inProgress(t, ctx)) return [true];
       const ref = ctx.ref("price_close", f.date);
       if (ref > 0 ? f.spot !== ref : f.spot > 0) return [false, "price " + f.spot + ", BRK's close " + ref];
       return [true];
@@ -502,6 +505,31 @@ export const TRACE_CHECKS = [
     applies: (t) => !t.error && Array.isArray(t.moused) && t.moused.length > 0,
     judge(t) {
       for (const m of t.moused) { const fault = actFault(m); if (fault) return [false, actWords(m.act) + ": " + fault]; }
+      return [true];
+    },
+  },
+  {
+    id: "pin-true",
+    failure: "PIN Y-AXIS does not tell the truth or does not work: it is pressed while the left axis is the day's own, or not pressed while a kept pin holds the axis; a press does not pin the scale on screen, or unpin it; or the pin is not kept for the next visit as the page reads one.",
+    seen: "fourth error analysis, 20 Nov 2026, the first traces of a browser that kept something from an earlier visit: with an entry that was no pin the button was pressed over a scale that was not pinned (3 of 9 kept stores), and with a store that was a word or a list a press did not pin, or the pin was written back without itself (2 of 9)",
+    applies: (t) => !t.error && !!t.facts && !!t.facts.pin,
+    judge(t) {
+      const close = (a, b) => typeof a === "number" && typeof b === "number" && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+      const isPin = (p) => Array.isArray(p) && typeof p[0] === "string" && typeof p[1] === "number" && isFinite(p[1]) && p[1] > 0;
+      const o = t.facts.pin.opened, p = t.facts.pin.pressed;
+      // As it opens: pressed exactly when the browser holds a pin for the settings on screen, and drawn against it.
+      for (const [when, f] of [["as the page opens", o], ["after PIN Y-AXIS is pressed", p]]) {
+        if (f.pressed !== isPin(f.held)) return [false, when + " the button is " + (f.pressed ? "" : "not ") + "pressed and the page holds " + JSON.stringify(f.held) + " for " + f.key];
+        if (f.pressed ? !close(f.top, f.held[1]) : !close(f.top, f.dayTop)) return [false, when + " the left axis ends at " + f.top + ", " + (f.pressed ? "the pin is " + f.held[1] : "the day's own top is " + f.dayTop)];
+      }
+      // The press: it pins the scale on screen where none was pinned, and takes the pin off where one was.
+      if (p.pressed === o.pressed) return [false, "a press of PIN Y-AXIS left it " + (p.pressed ? "pressed" : "not pressed")];
+      if (p.pressed && !(p.held[0] === p.date && close(p.held[1], p.dayTop))) return [false, "the press pinned " + JSON.stringify(p.held) + ", the chart on screen is " + p.date + " with a top of " + p.dayTop];
+      // What the browser keeps is what the page will read at the next visit.
+      let kept = null;
+      try { kept = JSON.parse(p.kept); } catch (e) {}
+      const entry = kept && typeof kept === "object" && !Array.isArray(kept) ? kept[p.key] : undefined;
+      if (p.pressed ? !(isPin(entry) && entry[0] === p.held[0] && close(entry[1], p.held[1])) : entry !== undefined) return [false, "after the press the browser keeps " + String(p.kept).slice(0, 80) + ", the page holds " + JSON.stringify(p.held)];
       return [true];
     },
   },

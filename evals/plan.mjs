@@ -5,7 +5,7 @@
 // Days are either fixed (landmarks, the edges of the history, the latest days) or random from a seeded generator, so a
 // plan is the same every time it is made from the same seed.
 //
-//   plan("review")       the error-analysis set: 205 traces, every dimension (about 14 minutes)
+//   plan("review")       the error-analysis set: 215 traces, every dimension (about 15 minutes)
 //   plan("daily", seed)  the monitoring sample: the latest days in every view and the newest block, plus random days,
 //                        blocks, windows, languages, time zones, settings, marked ranges, steps, a zoomed view and
 //                        the mouse itself, which change with the seed (one a day), so the history is covered over
@@ -53,11 +53,30 @@ const DAY = 864e5;
 const randomDays = (rand, n, from, to) => Array.from({ length: n }, () =>
   new Date(Date.parse(from) + Math.floor(rand() * ((Date.parse(to) - Date.parse(from)) / DAY)) * DAY).toISOString().slice(0, 10));
 
+// What a browser can have kept of an earlier visit (the page's localStorage, where it keeps the pinned scales): [why,
+// kept]. A pin as the page writes one, of the day before and of a quiet day long ago; a pin for other settings than
+// the page opens with; and stores that are not what the page writes (a height as text stopped every chart from
+// drawing until 20 Nov 2026). A trace of one is the page as it opens in that browser, with nothing set from here, and
+// PIN Y-AXIS pressed once.
+const PIN = "usd%|b625|s0.24";   // the settings the page opens with
+export const KEPT = [
+  ["came back with yesterday's scale pinned", { bsd_peaks_v3: { [PIN]: ["2026-11-19", 1.2] } }],
+  ["came back with the scale of a quiet day of 2015 pinned", { bsd_peaks_v3: { [PIN]: ["2015-01-14", 0.4] } }],
+  ["came back with a pin for other settings", { bsd_peaks_v3: { "btc%|b300|s1": ["2026-11-19", 2] } }],
+  ["came back with a pin whose height is text", { bsd_peaks_v3: { [PIN]: ["2026-11-19", "1.2"] } }],
+  ["came back with an entry that is no pin", { bsd_peaks_v3: { [PIN]: "abc" } }],
+  ["came back with a pin of no height", { bsd_peaks_v3: { [PIN]: ["2026-11-19", 0] } }],
+  ["came back with a store that is a word", { bsd_peaks_v3: "\"oops\"" }],
+  ["came back with a store that is a list", { bsd_peaks_v3: "[1,2]" }],
+  ["came back with a store that cannot be read", { bsd_peaks_v3: "{not json" }],
+  ["came back with pins of older versions only", { bsd_peaks_v2: { "usd|b625|s0.24": ["2026-08-14", 2e10] }, bsd_peaks_v1: { "usd|b625|s0.24": ["2025-01-01", 9e9] } }],
+];
+
 export function plan(kind = "daily", seed = Number(new Date().toISOString().slice(0, 10).replace(/-/g, ""))) {
   const traces = [];
   let n = 0;
   const add = (date, why, view, extra = {}) => traces.push({ id: "t" + String(++n).padStart(3, "0"), date, why, view,
-    window: "desktop", lang: "en", settings: {}, mark: null, block: null, tz: null, steps: null, zoom: null, mouse: null, ...extra });
+    window: "desktop", lang: "en", settings: {}, mark: null, block: null, tz: null, steps: null, zoom: null, mouse: null, kept: null, ...extra });
   if (kind === "review") {
     const rand = generator(20261104);
     const days = [...LANDMARKS.map(([d, why]) => ({ date: d, why })),
@@ -176,6 +195,8 @@ export function plan(kind = "daily", seed = Number(new Date().toISOString().slic
       { mouse: [["wheel", 0.50, -4], ["mark", 0.30, 0.50], ["right-click2", 0.40], ["click2", 0.40]] });
     add("2022-06-18", "Ctrl and the left button mark, for a mouse with one button", "btc-age",
       { mouse: [["ctrl-mark", 0.30, 0.50], ["wheel", 0.40, -3], ["ctrl-mark", 0.60, 0.20]] });
+    // Fourth analysis, 20 Nov 2026: a browser that kept something from an earlier visit, opened afresh.
+    for (const [why, kept] of KEPT) add("latest", why, "usd-lthsth", { kept });
     return { kind, seed: 20261104, windows: WINDOWS, traces };
   }
   if (kind !== "daily") throw new Error("unknown plan " + kind);
@@ -204,5 +225,7 @@ export function plan(kind = "daily", seed = Number(new Date().toISOString().slic
   add(randomDays(rand, 1, "2011-02-01", "2026-10-01")[0], "the mouse on a random day", pickOf(VIEWS), { window: pickOf(["desktop", "desktop", "laptop", "wide"]),
     mouse: [["wheel", at, -(4 + Math.floor(rand() * 12))], ["wheel", at, 1 + Math.floor(rand() * 3)], ["drag", 0.5, to], ["mark", m, m + 0.05 + rand() * 0.3],
       pickOf([["right-click2", 0.5], ["key", "Escape"], ["click2", 0.5], ["press", "prev"]])] });
+  // A browser that kept something from an earlier visit, opened afresh: one a day.
+  { const [why, kept] = pickOf(KEPT); add("latest", why, "usd-lthsth", { kept }); }
   return { kind, seed, windows: WINDOWS, traces };
 }

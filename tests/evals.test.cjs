@@ -177,6 +177,17 @@ const FAILURES = [
 
   ['empty-note', 'error analysis: a blank day before the first close, unexplained', () => { const t = good(emptyNote); t.facts.annotations = t.facts.annotations.filter((a) => !(a.x === 0.5 && a.y === 0.62)); return t; }],
   ['empty-note', 'the note on a day with bars', () => { const t = good(aDay); t.facts.annotations.push({ text: 'No USD value yet | Every coin last moved before the first BTC/USD close (16 Aug 2010).', xref: 'paper', yref: 'paper', x: 0.5, y: 0.62, box: null }); return t; }],
+  // A browser that kept a pinned scale, opened afresh (fourth analysis, 20 Nov 2026). Each is what the page did with
+  // that store before it took a kept pin only in the shape it writes one, put onto a trace of the page as fixed.
+  ['pin-true', 't210 before the fix: the browser kept "abc" for the settings on screen, and PIN Y-AXIS was pressed over the day\'s own scale', () => { const t = good('k209'); Object.assign(t.facts.pin.opened, { pressed: true, held: 'abc' }); return t; }],
+  ['pin-true', 't211 before the fix: pressed over a pin of no height', () => { const t = good('k209'); Object.assign(t.facts.pin.opened, { pressed: true, held: ['2026-11-19', 0] }); return t; }],
+  ['pin-true', 't212 before the fix: the store was a word, and a press of PIN Y-AXIS pinned nothing', () => { const t = good('k212'); Object.assign(t.facts.pin.pressed, { pressed: false, held: null, kept: '"oops"' }); return t; }],
+  ['pin-true', 't213 before the fix: the store was a list, and the pin was written back without itself', () => { const t = good('k213'); t.facts.pin.pressed.kept = '[1,2]'; return t; }],
+  ['pin-true', 'a kept pin the left axis is not drawn against', () => { const t = good('k206'); t.facts.pin.opened.top = t.facts.pin.opened.dayTop; return t; }],
+  ['pin-true', 'not pressed while a kept pin holds the axis', () => { const t = good('k207'); t.facts.pin.opened.pressed = false; return t; }],
+  ['pin-true', 'a press that pins another day than the one on screen', () => { const t = good('k208'); t.facts.pin.pressed.held[0] = '2026-11-01'; return t; }],
+  ['pin-true', 'a press that leaves the pin on', () => { const t = good('k206'); Object.assign(t.facts.pin.pressed, { pressed: true, held: t.facts.pin.opened.held, top: t.facts.pin.opened.top, kept: t.facts.pin.opened.kept }); return t; }],
+  ['draws', 't209 before the fix: a kept pin whose height was text, and no chart at all', () => { const t = good('k209'); delete t.facts; t.error = 'the page gave up: Error: v.toFixed is not a function. Press >> or End to try again.'; return t; }],
 ];
 
 const SITE_FAILURES = [

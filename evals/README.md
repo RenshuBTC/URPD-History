@@ -18,17 +18,20 @@ price labels a visitor can actually see, the dot on the price line, the toolbar,
 landed, what each turn of the wheel and each drag left behind, any error in the console, and a screenshot. A zoomed
 view is then held to the whole axis, drawn in its place.
 
-`plan.mjs` chooses the traces. `review` is the error-analysis set, 205 traces over 57 days and 27 blocks: the edges of
+`plan.mjs` chooses the traces. `review` is the error-analysis set, 215 traces over 57 days and 27 blocks: the edges of
 the history (the genesis day, the days when every coin was still at $0), the cycle tops, bottoms and halvings, 12
 random days, the latest complete day and the day in progress, each in two or four views, plus other windows,
 languages and settings, 20 marked ranges, 37 traces of blocks in six time zones (the newest block, a day's first and
 last, the halving block, blocks before any coin had a price, random ones), 8 runs of the step buttons, 32 zoomed
 views (the price in view and to either side of it, both ends of the axis, ten bars, bars under a dollar wide, every
 setting, marked ranges the view cuts) and 12 runs of the real mouse, 49 acts in all (the wheel in and out at one
-spot, sideways and with Shift, a drag with either button, double clicks, Escape, a view carried to the next day).
-`daily` is a smaller sample, 18 traces: the latest days in every view, the newest block, a zoomed view of the latest
-day, the mouse on a random day, and random days, blocks, windows, languages, time zones, settings, marked ranges and
-button presses that change with the date, so that over time the whole history is covered.
+spot, sideways and with Shift, a drag with either button, double clicks, Escape, a view carried to the next day), and
+10 of a browser that kept something from an earlier visit, opened afresh (a pinned scale as the page writes one, a
+pin for other settings, and stores that are not what the page writes).
+`daily` is a smaller sample, 19 traces: the latest days in every view, the newest block, a zoomed view of the latest
+day, the mouse on a random day, a browser that kept something, and random days, blocks, windows, languages, time
+zones, settings, marked ranges and button presses that change with the date, so that over time the whole history is
+covered.
 
 ## Error analysis, November 2026
 
@@ -152,6 +155,60 @@ Noted, with no check, because each is a choice for the owner rather than a fault
 - With Y-max under 100 a zoomed view can cut most of the bars it shows: the axis ends where it does on the whole
   axis, and a dense stretch of prices holds the day's tallest bars (t182: 57 bars cut at Y-max 90).
 
+## Fourth error analysis, 20 November 2026: what the traces had never been
+
+The owner asked for the evals to be gone over against the FAQ once more. This time the reading began with the
+traces themselves rather than the chart: what is a trace here, and what can a visitor do that no trace has done?
+Two things.
+
+**A trace is set up from inside the page.** One page is opened for each window and time zone and every trace after
+the first is drawn on it: the settings are put back, and the view, the language, the bins and the day are set by
+the page's own functions, not by its buttons. Only the step buttons and the mouse on the chart were ever pressed as
+a visitor presses them. So 70 acts were done with the toolbar itself on the live site, in ten visits, and what the
+page held and what the toolbar showed were read after each: the four view buttons, the four fields (typed and
+entered, typed and left, and 15 values a field should refuse or bring into range), first, previous, next and latest
+with the mouse and with the keys, the landmark list, the language, the pin, the two menus, and each step size. Each
+did what it says. No check was written for this: there is no failure to name (`tests/ui.test.cjs` and
+`tests/controls.test.cjs` hold the buttons' wiring outside a browser).
+
+**No trace had ever been a second visit.** The page keeps one thing in the browser, the pinned scales, and reads
+it back before anything is drawn. Ten visits were made by a browser that had kept something, each opened afresh
+with nothing set from inside: a pin as the page writes one, and eight stores that are not what the page writes.
+
+| Failure | In the 10 visits | Check | Now |
+|---|---|---|---|
+| The chart does not draw at all, at any visit, until the browser's storage is cleared: "Error: v.toFixed is not a function" | 1 (t209: a pin whose height was kept as text) | `draws` | fixed: what the browser kept is taken only as what the page writes, a day and a height above zero for a setting; anything else is left out |
+| PIN Y-AXIS is pressed over a scale that is not pinned: the left axis is the day's own | 2 (t210: an entry that is no pin; t211: a pin of no height) | `pin-true` (new) | fixed, the same way |
+| A press of PIN Y-AXIS pins nothing | 1 (t212: the store was a word) | `pin-true` (new) | fixed |
+| The pin holds for the visit and is written back without itself, gone at the next | 1 (t213: the store was a list) | `pin-true` (new) | fixed |
+| A pin as the page writes one, of yesterday or of a quiet day of 2015, a pin for other settings, a store that cannot be read, pins of older versions | 0 of 5 | `pin-true` | checked daily |
+
+None of the five has been reported by a visitor, and the page has only ever written well-formed pins under this
+name; a store goes wrong from outside (an extension, a hand, a disk). They are fixed because the first of them
+takes the whole site away from that browser with no way back that a visitor would find, and the fix is ten lines.
+
+What the audit against the FAQ found otherwise:
+
+- **Binary, and code.** Every check is pass or fail with its reason, a trace passes when all that apply pass, and a
+  run reports that count. No check asks a model, and none is proposed: each failure in the four analyses is one
+  code can tell exactly (a total against BRK's, a box against another box, a bar against its price). A judge would
+  be for a fault that needs taste, such as a chart that is right and hard to read; none has been found that is
+  not already one of the owner's choices listed under the third analysis. Should one come up, it gets one judge,
+  for that failure only, with pass or fail and its reason, and is trusted only once it agrees with the owner's own
+  labels on traces it was not written from (at least 50 of each kind, the rates given separately for good and bad
+  traces).
+- **Checks that always pass.** The daily run has been red on four days (7, 8, 12 and 14 Nov) and green on every day
+  since: `labels-clear` failed on two of them and `draws` on one, and `in-profit` and `mark-edges` failed once each
+  by their own fault (second analysis). No other check has failed on a new day. They are kept daily all the same,
+  for what they guard: the totals against BRK's own series fail the day BRK changes what it serves (#191, which a
+  visitor found before any check existed), and the layout checks depend on the day drawn, which is how the two red
+  runs of `labels-clear` came about. What is worth retiring is looked at again once a check has gone some months
+  without a failure on any day.
+- **Real traces.** There is no record of what visitors do, and none is wanted (the site sets no cookie and loads
+  no analytics). What stands in for it: one issue from a visitor (#189, BRK's API change, which `draws` now
+  catches), the owner's own reports, and plans that sample days, blocks, windows, languages and settings at random
+  every day.
+
 ## The checks
 
 `checks.mjs` holds them. Each is a few lines of code with a yes or no answer and the reason; none scores, weighs or
@@ -176,6 +233,7 @@ and each check's own count.
 | `price-labels` | a price label the page asked for is not on screen, two in a row read the same, one is written in thousands to three decimals or (zoomed) with a single decimal, or one names another price than its gridline's (zoomed: over a tenth of a step away; the whole axis: beyond its two figures) |
 | `zoom-view` | a zoomed price axis is not whole bars of the day, ten at the least, where they were asked for; a bar differs from the whole axis's in price, height, running share or amount; the left axis ends anywhere but the lower of the whole axis's top and the tallest bar in view (pinned: the pin); the gridlines are not twenty steps over the view; or the price box is neither on its line nor against the edge the line left by, with its arrow |
 | `mouse` | the wheel zooms the wrong way, past ten bars or the whole axis, or lets the price under the pointer slide over a bar in a run of turns; a left drag does not take a zoomed axis with it, or marks; a right drag (or Ctrl and the left) does not mark the bars it passed over, moves the view or lets the browser's menu open; two clicks or Escape do not give the whole axis back; two right-clicks or Escape do not clear the mark; or a step to another day loses the view |
+| `pin-true` | in a browser that kept something from an earlier visit: PIN Y-AXIS is pressed while the left axis is the day's own, or not pressed while a kept pin holds it; a press does not pin the scale on screen or take the pin off; or what the browser then keeps is not a pin the page will read |
 | `empty-note` | a day with nothing to draw has no note saying why, or a day with bars has one |
 | `video-links` | a video menu link is not one of the four latest videos, or they end over 45 days ago |
 | `axis-history` | `data/scales.json` ends over 2 days ago |
@@ -185,11 +243,11 @@ height, which BRK computes separately from the URPD buckets the site draws. They
 
 ## Checking the checks
 
-`tests/evals.test.cjs` runs every check over labelled examples (`fixtures/labelled.json`): 66 real traces of the
+`tests/evals.test.cjs` runs every check over labelled examples (`fixtures/labelled.json`): 72 real traces of the
 site that review found good (days and blocks, every window and language, five time zones, marked ranges, button
-presses, zoomed views and every act of the mouse), and 114 failures made from them that reproduce each one seen
-before, from a price two days behind to a block's time on the wrong clock to the wheel letting the price under the
-pointer slide. Each check must pass every good example it applies to and fail every failure made for it, and a made
+presses, zoomed views, every act of the mouse, and six visits by a browser that kept a pinned scale), and 123
+failures made from them that reproduce each one seen before, from a price two days behind to a block's time on the
+wrong clock to the wheel letting the price under the pointer slide to a pin button pressed over nothing. Each check must pass every good example it applies to and fail every failure made for it, and a made
 failure must fail no check but its own, so a check that misses its failure, flags a good chart or counts another
 check's fault fails in the regression tests. `fixtures/build.mjs` makes the file from a reviewed run.
 
@@ -200,6 +258,8 @@ tolerance, 0.1 points, flagged 16 good traces. The second time it found the six 
 example could have found: the checks only see what the collector records, so a run's own output is read too, green
 or not. The third time the traces came first: the new checks were run on the 44 traces of the page before it was
 fixed, where each had to fail the faults found by eye and nothing else, before the fixed page's traces were labelled.
+The fourth time the ten visits were drawn on the live page first, where `draws` and `pin-true` failed the five that
+had gone wrong and passed the five that had not, and then on the page as fixed, where all ten pass.
 
 ## Running them
 
@@ -208,7 +268,7 @@ Once, in `evals/`: `npm ci --ignore-scripts` and `npx playwright install chromiu
 ```sh
 node evals/run.mjs                          # the daily sample, on https://www.bitcoinurpd.com/
 node evals/run.mjs --local                  # the same on this checkout, served on 127.0.0.1, before a merge
-node evals/run.mjs --plan review --shots    # all 205 traces, with screenshots, to review by eye
+node evals/run.mjs --plan review --shots    # all 215 traces, with screenshots, to review by eye
 node evals/run.mjs --traces evals/out/RUN/traces.json   # judge a run's traces again, after changing a check
 node evals/fixtures/build.mjs evals/out/RUN/traces.json t001,t124   # label reviewed traces as good examples
 ```
@@ -231,6 +291,8 @@ the full set.
   a failure made for it in `tests/evals.test.cjs`, and fix the site with a regression test of its own.
 - When the chart gains something a visitor can do, add traces of it to the plan in the same pull request. 1B went
   two weeks with none; the zoomed axis went live with none, and four faults were found in it the same day.
+- Ask of the traces what they have never been, as well as what the chart has never shown. Every trace was a first
+  visit until the fourth analysis, and the one thing the page keeps between visits could stop it from drawing.
 - Hold a gesture to what the page promises over the whole of it. A rule checked one step at a time lets through
   whatever adds up.
 - These checks are exact, so a daily run is expected to pass in full; a failure is a fault to fix. A check that has
